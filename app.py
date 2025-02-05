@@ -1,4 +1,5 @@
-from flask import Flask, render_template, request, redirect, flash,session
+from flask import Flask, render_template, request, redirect, flash, session, url_for
+from werkzeug.security import generate_password_hash, check_password_hash
 import sqlite3
 
 app = Flask(__name__)
@@ -21,7 +22,7 @@ def login():
     return render_template('login.html')
 
 
-@app.route('/update')
+@app.route('/update_password')
 def forget_password():
     return render_template('update.html')
 
@@ -47,26 +48,26 @@ def signup():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login_check():
-    # Retrieve username and password from the form
-    username = request.form.get('username')
-    password = request.form.get('password')
+    if request.method == "POST":
+        username = request.form.get("username")
+        password = request.form.get("password")
 
-    # Open a connection to the database
-    conn = sqlite3.connect("db_AcademicPlannerAdvisor.db")
-    cursor = conn.cursor()
+        conn = sqlite3.connect("db_AcademicPlannerAdvisor.db")
+        cursor = conn.cursor()
 
-    # Query the database for the user
-    cursor.execute("SELECT * FROM tbl_login WHERE user_name = ? AND passwd = ?", (username, password))
-    user = cursor.fetchone()
-    conn.close()
+        # Query to fetch user details
+        cursor.execute("SELECT * FROM tbl_login WHERE user_name = ?", (username,))
+        user = cursor.fetchone()
+        conn.close()
 
-    if user:
-        session['username'] = user['username']
-        session['password'] = user['password']
-        return redirect('/update')
-    else:
-        flash("Invalid username or password. Please try again.")
-        return render_template('login.html', message="Username and Password Mismatch.")
+        if user:
+            session["username"] = user["user_name"]  # Store username in session
+            flash("Login successful!", "success")
+            return redirect(url_for("update"))  # Redirect to next page
+        else:
+            flash("Invalid username or password.", "error")
+
+        return render_template("login.html")
 
 
 def insert_user(username, firstname, lastname, dob, email, password):
@@ -80,6 +81,47 @@ def insert_user(username, firstname, lastname, dob, email, password):
         return True
     except sqlite3.IntegrityError:
         return False
+
+
+# Route to render the password update form
+@app.route('/update_password', methods=['GET', 'POST'])
+def update_password():
+    if request.method == 'POST':
+        # Get form data
+        username = request.form['uname']
+        old_password = request.form['passwd_old']
+        new_password = request.form['passwd_new']
+        confirm_password = request.form['passwd_confirm']
+
+        # Check if the new passwords match
+        if new_password != confirm_password:
+            return "New passwords do not match!"
+
+        # Connect to the database
+        conn = sqlite3.connect('db_AcademicPlannerAdvisor.db')
+        cursor = conn.cursor()
+
+        # Check if the username and old password match
+        cursor.execute("SELECT passwd FROM tbl_login WHERE user_name = ?", (username,))
+        row = cursor.fetchone()
+
+        if row is None or not check_password_hash(row[0], old_password):
+            conn.close()
+            return "Invalid username or old password."
+
+        # Hash the new password using werkzeug
+        hashed_new_password = generate_password_hash(new_password)
+
+        # Update password in the database (login table)
+        cursor.execute("UPDATE tbl_login SET passwd = ? WHERE user_name = ?", (hashed_new_password, username))
+        cursor.execute("UPDATE tbl_signup SET passwd = ? WHERE user_name = ?", (hashed_new_password, username))
+
+        conn.commit()
+        conn.close()
+
+        return redirect(url_for('login'))
+
+    return render_template('update.html')
 
 
 if __name__ == '__main__':
