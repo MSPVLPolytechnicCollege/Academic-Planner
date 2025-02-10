@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+       <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: url('static/background_img.jpg') no-repeat center fixed; /* Replace with your image */
+            background-size: cover;
+            margin-top: 150px;
+            text-align: center;
+            padding: 50px;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: repeat(3, auto); /* First row: 3 buttons */
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .button {
+            width: 250px;
+            padding: 15px;
+            font-size: 18px;
+            background-color: rgba(255, 255, 255, 0.8); /* Slight transparency */
+            border: 2px solid #906060;
+            color: #906060;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: 0.3s;
+            text-align: center;
+        }
+
+        .button:hover {
+            background-color: rgba(230, 214, 208, 0.8);
+        }
+
+        .generate-button {
+            background-color: #906060;
+            color: white;
+            font-weight: bold;
+        }
+
+        .generate-button:hover {
+            background-color: #7a4f4f;
+        }
+
+        /* Second row: Centering two buttons closer together */
+        .row-two {
+            display: flex;
+            justify-content: center;
+            gap: 5px; /* Reduced space between buttons */
+            margin-top: 15px;
+        }
+
+        /* Third row: Fully centered */
+        .row-three {
+            text-align: center;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <button class="button">Step 1 - Add Subjects</button>
+        <button class="button">Step 2 - Add Teachers</button>
+        <button class="button">Step 3 - Class List</button>
+    </div>
+
+    <div class="row-two">
+        <button class="button">Teacher Restrictions</button>
+        <button class="button">Predefined Classes</button>
+    </div>
+
+    <div class="row-three">
+        <button class="button generate-button">Generate Schedule</button>
+    </div>
+
+</body>
+</html>
