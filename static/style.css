@@ -1,6 +1,5 @@
-.bg-img {
-            background-image: url(
-"bg_img.jpg");
+.login_signup_img{
+            background-image: url("img_bg.jpg");
             min-height: 100vh;
             background-size: cover;
             display: flex;
@@ -8,9 +7,8 @@
             align-items: center;
             justify-content: center;
         }
-.bgimg_update {
-            background-image: url(
-"bgimg_update.jpg");
+.updatePasswd_page {
+            background-image: url("img_bg.jpg");
             min-height: 100vh;
             background-size: cover;
             display: flex;
@@ -18,54 +16,52 @@
             align-items: center;
             justify-content: center;
         }
-        .container {
+ .container {
+            position: relative;
+            max-width: 600px;
+	         max-height: 500px;
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.8);
+            box-shadow: 0 4px 8px rgba(1, 1, 1, 1);
+        }
+.container_update{
             position: relative;
             max-width: 500px;
             padding: 30px;
             background: rgba(255, 255, 255, 0.8);
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
-        .container_update{
-            position: relative;
-            max-width: 500px;
-            padding: 30px;
-            background: rgba(215, 189, 226);
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 8px rgba(1,1,1,1);
         }
 input[type=text],input[type=password] {
-  width: 100%;
-  padding: 12px 20px;
-  margin: 8px 0;
-  display: inline-block;
-  border: 1px solid #ccc;
-  box-sizing: border-box;
-}
+          width: 100%;
+          padding: 12px 20px;
+          margin: 8px 0;
+          display: inline-block;
+          border: 1px solid #ccc;
+          box-sizing: border-box;
+      }
 
 /* Set a style for all buttons */
 button {
-  background-color: #04AA6D;
-  color: white;
-  padding: 14px 20px;
-  margin: 8px 0;
-  border: none;
-  cursor: pointer;
-  width: 100%;
-}
-.btn_fpage{
-         background-color: #f3cc70  ;
+           background-color: #04AA6D;
+          color: white;
+          padding: 14px 20px;
+          margin: 8px 0;
+         border: none;
+         cursor: pointer;
+         width: 100%;
+        }
+
+.btn_home{
+         background-color: #f899dd  ;
         color: white;
         padding: 20px;
       font-size: 16px;
       border-radius:12px;
       margin: 4px 2px;
 }
-.bg_fpage{
-            background-image: url("bg_fpage.png");
-            min-height: 100vh;
+.bg_home{
+            background-image: url("bg_home.png");
             background-size: cover;
             display: flex;
             float :right;
         }
-
