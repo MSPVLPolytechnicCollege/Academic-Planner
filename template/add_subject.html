@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Subjects</title>
+    <style>
+        body { background: url('static/bg_page.jpg');font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 700px; margin: auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid black; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .delete-btn {  background-color:red;color: white; width: 100%;}
+        .delete-btn:hover { background-color: darkred; }
+        .save-btn { background-color: green; color: white; border: none; width: 100%;padding: 10px 15px; cursor: pointer; margin-top: 20px; display: block; }
+        .save-btn:hover { background-color: darkgreen; }
+        input[type=text],input[type=password] ,select{
+          width: 50%;
+          padding: 12px 20px;
+          margin: 8px 0;
+          display: inline-block;
+          border: 1px solid #ccc;
+          box-sizing: border-box;
+      }
+      .button_addSubject {
+           background-color: #04AA6D;
+          color: white;
+          padding: 14px 20px;
+          margin: 8px 0;
+         border: none;
+         cursor: pointer;
+         width: 30%;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Add Subjects</h2>
+
+        <label for="department">Department:</label>
+        <select id="department">
+            <option value="CSE">Computer Science (CSE)</option>
+            <option value="ECE">Electronics & Communication (ECE)</option>
+            <option value="EEE">Electrical & Electronics (EEE)</option>
+            <option value="MECH">Mechanical (MECH)</option>
+            <option value="CIVIL">Civil (CIVIL)</option>
+        </select>
+        <br>
+
+        <label for="semester">Semester:</label>&nbsp;&nbsp;&nbsp;
+        <select id="semester">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+            <option value="7">7</option>
+            <option value="8">8</option>
+            <option value="9">9</option>
+            <option value="10">10</option>
+        </select>
+        <br>
+
+        <label for="year">Year:</label>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <select id="year">
+            <option value="1st Year">1st Year</option>
+            <option value="2nd Year">2nd Year</option>
+        </select>
+        <br>
+
+        <label for="subject">Subject:</label>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <input type="text" id="subject">
+        &nbsp;&nbsp;&nbsp;&nbsp;<button onclick="addSubject()" class="button_addSubject">Add Subject</button>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>S.No</th>
+                    <th>Department</th>
+                    <th>Semester</th>
+                    <th>Year</th>
+                    <th>Subject</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="subjectTable">
+            </tbody>
+        </table>
+
+        <!-- Save Data Button -->
+        <form action="{{ url_for('save_subjects') }}" method="POST" ><button class="save-btn" onclick="saveDataToDB()">Save Data</button></form>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", loadSubjects);
+
+        function addSubject() {
+            const department = document.getElementById("department").value;
+            const semester = document.getElementById("semester").value;
+            const year = document.getElementById("year").value;
+            const subject = document.getElementById("subject").value;
+
+            if (!department || !semester || !year || !subject) {
+                alert("Please enter all details.");
+                return;
+            }
+
+            const table = document.getElementById("subjectTable");
+            const row = document.createElement("tr");
+
+            row.innerHTML = `
+                <td></td>
+                <td>${department}</td>
+                <td>${semester}</td>
+                <td>${year}</td>
+                <td>${subject}</td>
+                <td><button class="delete-btn" onclick="deleteRow(this)">Delete</button></td>
+            `;
+
+            table.appendChild(row);
+            document.getElementById("subject").value = "";
+
+            updateSerialNumbers();
+        }
+
+        function deleteRow(button) {
+            const row = button.parentElement.parentElement;
+            row.remove();
+            updateSerialNumbers();
+        }
+
+        function updateSerialNumbers() {
+            const table = document.getElementById("subjectTable");
+            const rows = table.getElementsByTagName("tr");
+
+            for (let i = 0; i < rows.length; i++) {
+                rows[i].cells[0].innerText = i + 1;
+            }
+        }
+
+        function saveDataToDB() {
+            const table = document.getElementById("subjectTable");
+            const rows = table.getElementsByTagName("tr");
+            const subjects = [];
+
+            for (let i = 0; i < rows.length; i++) {
+                const cells = rows[i].getElementsByTagName("td");
+                if (cells.length === 6) {  // Ensure row contains data
+                    subjects.push({
+                        department: cells[1].innerText,
+                        semester: cells[2].innerText,
+                        year: cells[3].innerText,
+                        subject: cells[4].innerText
+                    });
+                }
+            }
+
+            if (subjects.length === 0) {
+                alert("No subjects to save.");
+                return;
+            }
+
+            fetch('/save_subjects', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ subjects })
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+            })
+            .catch(error => console.error("Error:", error));
+        }
+    </script>
+</body>
+</html>
