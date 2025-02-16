@@ -19,7 +19,16 @@
  .container {
             position: relative;
             max-width: 600px;
-	         max-height: 500px;
+	         max-height: 600px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.8);
+            box-shadow: 0 4px 8px rgba(1, 1, 1, 1);
+        }
+
+.container_login {
+            position: relative;
+            max-width: 600px;
+	         max-height: 700px;
             padding: 30px;
             background: rgba(255, 255, 255, 0.8);
             box-shadow: 0 4px 8px rgba(1, 1, 1, 1);
@@ -31,15 +40,21 @@
             background: rgba(255, 255, 255, 0.8);
             box-shadow: 0 4px 8px rgba(1,1,1,1);
         }
-input[type=text],input[type=password] {
-          width: 100%;
-          padding: 12px 20px;
-          margin: 8px 0;
-          display: inline-block;
-          border: 1px solid #ccc;
-          box-sizing: border-box;
-      }
+input[type="text"], input[type="password"] {
+    width: 100%;
+    padding: 12px 20px;
+    margin: 8px 0;
+    display: inline-block;
+    border: 1px solid #ccc;
+    box-sizing: border-box;
+    background-color: #fff;  /* Ensure background is white */
+}
 
+/* Optional: Change border color on focus for better UX */
+input[type="text"]:focus, input[type="password"]:focus {
+    border-color: #66afe9;
+    outline: none;
+}
 /* Set a style for all buttons */
 button {
            background-color: #04AA6D;
@@ -65,3 +80,21 @@ button {
             display: flex;
             float :right;
         }
+.flash-messages {
+    margin: 10px 0;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.error {
+    color: red;
+    font-size: 14px;
+    margin-top: 5px;
+}
+
+.flash-messages .success {
+    color: #4F8A10;
+    background-color: #DFF2BF;
+    padding: 10px;
+    border: 1px solid #4F8A10;
+}
