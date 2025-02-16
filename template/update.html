@@ -5,8 +5,9 @@
 <link rel="stylesheet" href="static\style.css">
 </head>
 <body>
-<div class="bgimg_update">
+<div class="updatePasswd_page">
   <form class="container_update" method="POST" action="/update_password">
+     <label><b><h2>Update Password</h2></b></label><br>
     <label for="uname"><b>Username</b></label>
     <input type="text" placeholder="Enter Username" name="uname" required>
     <label for="passwd_old"><b>Old Password</b></label>
@@ -15,8 +16,19 @@
     <input type="password" placeholder="Enter a new Password" name="passwd_new" required>
         <label for="passwd_confirm"><b>Confirm Password</b></label>
     <input type="password" placeholder="Confirm your Password" name="passwd_confirm" required>   
+    <!-- Display error messages -->
+    {% with messages = get_flashed_messages(with_categories=True) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                {% if category == 'error' %}
+                    <p class="error">{{ message }}</p>
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
     <button type="submit">Update</button>
-    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="/login">back</a>
+    <br><br>
+    <center><a href="/login">Back to Login</a></center>
   </form>
 </div>
 </body>
