@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+        body {background: url('static/bg_page.jpg');background-size: cover; font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 700px; margin: auto; }
+        .delete-btn { background-color: red; color: white; width: 100%; cursor: pointer; }
+        .save-btn { background-color: #04AA6D; color: white; border: none; width: 100%; padding: 10px 15px; cursor: pointer; margin-top: 20px; display: block; }
+        input[type=text],input[type=number],select {
+            width: 50%;
+            padding: 12px 20px;
+            margin: 8px 0;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #04AA6D;
+            color: white;
+            padding: 12px 20px;
+            margin: 8px 0;
+            border: none;
+            cursor: pointer;
+            width: 100%;
+        }
+    </style>
+<script>
+document.getElementById("classroomForm").addEventListener("submit", function(event) {
+    event.preventDefault();
+
+    let formData = {
+        department: document.getElementById("department").value,
+        no_of_classroom: document.getElementById("no_of_classroom").value,
+        classroom_names: document.getElementById("classroom_names").value,
+        no_of_lab: document.getElementById("no_of_lab").value,
+        lab_names: document.getElementById("lab_names").value
+    };
+
+    fetch("/save_classroom", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(data => alert(data.message))
+    .catch(error => console.error("Error:", error));
+});
+</script>
+
+</head>
+<body>
+	<div class="container">
+
+		<h2>Add Classroom Details</h2>
+        <form id="ClassListForm">
+			    <label for="department">Department:</label>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <select id="department">
+            <option value="none" selected disabled>None</option>
+            <option value="CE">Computer Engineering (CE)</option>
+            <option value="IT">Information Technology(IT)</option>
+            <option value="ECE">Electronics & Communication Engineering (ECE)</option>
+            <option value="EEE">Electrical & Electronics Engineering (EEE)</option>
+            <option value="MECH">Mechanical Engineering (MECH)</option>
+            <option value="AUTO">Automobile Engineering (AUTO)</option>
+            <option value="CIVIL">Civil Engineering (CIVIL)</option>
+        </select>
+        <br>
+
+        <label for="no_of_classroom">No. of Classrooms Available:</label>
+        <input type="number" id="no_of_classroom" name="no_of_classroom" min="1" max="3" required><br><br>
+
+
+        <label for="classroom_names">Classroom Names (comma-separated):</label>
+        <input type="text" id="classroom_names" name="classroom_names" required><br><br>
+
+	<label for="no_of_lab">No. of Lab Available:</label>
+        <input type="number" id="no_of_lab" name="no_of_lab" min="1" max="5" required><br><br>
+	
+	<label for="lab_names">Lab Names (comma-separated):</label>
+        <input type="text" id="lab_names" name="lab_names" required><br><br>
+
+
+        <button type="submit">Save Class List</button>
+        </form>
+    </div>
+</body>
+</html>
+
+
+		
