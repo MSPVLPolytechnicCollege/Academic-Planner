@@ -5,93 +5,6 @@ import sqlite3
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
 
-# Database setup
-def init_db():
-    """Initialize the database and ensure tbl_subjects table exists."""
-    conn = sqlite3.connect('db_AcademicPlannerAdvisor.db')  # Ensure correct DB name
-    cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS tbl_subjects (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            department TEXT,
-            semester TEXT,
-            year TEXT,
-            subject TEXT
-        )
-    ''')
-    conn.commit()
-
-
-
-@app.route('/save_subjects', methods=['POST'])  # Only allow POST requests
-def save_subjects():
-    init_db()  # Ensure the table exists before inserting data
-
-    # Debugging: Print request data for troubleshooting
-    print("🔍 Raw Request Data:", request.data)
-    print("🔍 Headers:", request.headers)
-
-    # Attempt to parse JSON
-    data = request.get_json(silent=True)
-
-    print("🔍 Parsed JSON:", data)  # Debugging
-
-    # If JSON is not received correctly
-    if not data:
-        return jsonify({
-            "error": "Invalid JSON format. Ensure Content-Type is application/json.",
-            "received_raw": request.data.decode('utf-8')  # Decode raw data for debugging
-        }), 400
-
-    # Determine the correct key
-    key_name = "tbl_subjects" if "tbl_subjects" in data else "subjects"
-
-    if key_name not in data:
-        return jsonify({
-            "error": "Missing subjects key in JSON.",
-            "received_keys": list(data.keys())
-        }), 400
-
-    subjects = data[key_name]
-
-    # Ensure subjects is a list
-    if not isinstance(subjects, list):
-        return jsonify({
-            "error": "Subjects must be a list.",
-            "received_type": type(subjects).__name__
-        }), 400
-
-    # Validate that each subject has the required fields
-    required_keys = {"department", "semester", "year", "subject"}
-    for i, subject in enumerate(subjects):
-        if not isinstance(subject, dict):
-            return jsonify({
-                "error": f"Each subject must be a dictionary. Found {type(subject).__name__}.",
-                "subject_index": i
-            }), 400
-        missing_keys = required_keys - subject.keys()
-        if missing_keys:
-            return jsonify({
-                "error": f"Missing required fields in subject at index {i}.",
-                "missing_keys": list(missing_keys),
-                "subject_data": subject
-            }), 400
-
-    # Insert subjects into database
-    conn = sqlite3.connect('db_AcademicPlannerAdvisor.db')
-    cursor = conn.cursor()
-
-    for subject in subjects:
-        cursor.execute('''
-            INSERT INTO tbl_subjects (department, semester, year, subject)
-            VALUES (?, ?, ?, ?)
-        ''', (subject['department'], subject['semester'], subject['year'], subject['subject']))
-
-    conn.commit()
-    conn.close()
-
-    return jsonify({"message": "Subjects saved successfully!"}), 201  # 201 Created status
-
 
 # Function to insert user data into the database
 @app.route('/')
@@ -123,6 +36,13 @@ def main_page():
 def add_subjects():
     return render_template('add_subject.html')
 
+@app.route('/add_staffs')
+def add_staffs():
+    return render_template('add_staff.html')
+
+@app.route('/add_classes')
+def add_classes():
+    return render_template('add_class.html')
 
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
@@ -247,6 +167,171 @@ def update_password():
         conn.close()
 
     return render_template('update.html')  # Render update password page
+
+
+def init_db():
+    conn = sqlite3.connect("db_AcademicPlannerAdvisor.db")
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS subjects (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            subject_code TEXT UNIQUE NOT NULL,
+            department TEXT NOT NULL,
+            semester TEXT NOT NULL,
+            year TEXT NOT NULL,
+            subject_name TEXT NOT NULL,
+            subject_type TEXT NOT NULL,
+            no_of_hours INTEGER NOT NULL
+        )
+    ''')
+    cursor.execute('''
+            CREATE TABLE IF NOT EXISTS staff (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                staff_name TEXT NOT NULL,
+                department TEXT NOT NULL,
+                semester TEXT NOT NULL,
+                year TEXT NOT NULL,
+                no_of_subjects INTEGER NOT NULL,
+                subject_names TEXT NOT NULL
+            )
+        ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS classrooms (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            department TEXT NOT NULL,
+            no_of_classroom INTEGER NOT NULL,
+            classroom_names TEXT NOT NULL,
+            no_of_lab INTEGER NOT NULL,
+            lab_names TEXT NOT NULL
+        )
+    ''')
+
+    conn.commit()
+    conn.close()
+
+
+# Run this at the start of the application
+init_db()
+
+@app.route("/save_subjects", methods=["POST"])
+def save_subjects():
+    try:
+        data = request.json
+        subjects = data.get("subjects", [])
+        if not subjects:
+            return jsonify({"error": "No subjects provided"}), 400
+
+        conn = sqlite3.connect("db_AcademicPlannerAdvisor.db")
+        cursor = conn.cursor()
+
+        for subject in subjects:
+            try:
+                cursor.execute('''
+                    INSERT INTO subjects (subject_code, department, semester, year, subject_name, subject_type, no_of_hours)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ''', (
+                    subject["subject_code"], subject["department"], subject["semester"],
+                    subject["year"], subject["subject_name"], subject["subject_type"],
+                    subject["no_of_hours"]
+                ))
+            except sqlite3.IntegrityError:
+                return jsonify({"error": f"Subject code {subject['subject_code']} already exists"}), 400
+
+        conn.commit()
+        conn.close()
+        return jsonify({"message": "Subjects saved successfully"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# API to save staff details
+@app.route("/save_staff", methods=["POST"])
+def save_staff():
+    try:
+        data = request.json  # Receive JSON data from request
+        staff_name = data.get("staff_name")
+        department = data.get("department")
+        semester = data.get("semester")
+        year = data.get("year")
+        no_of_subjects = data.get("no_of_subjects")
+        subject_names = data.get("subject_names")
+
+        # Check if all fields are provided
+        if not all([staff_name, department, semester, year, no_of_subjects, subject_names]):
+            return jsonify({"error": "All fields are required"}), 400
+
+        #  Insert data into SQLite database
+        conn = sqlite3.connect("db_AcademicPlannerAdvisor.db")
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO staff (staff_name, department, semester, year, no_of_subjects, subject_names)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (staff_name, department, semester, year, no_of_subjects, subject_names))
+
+        conn.commit()
+        conn.close()
+        return jsonify({"message": "Staff details saved successfully!"})
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# 🔹 API to retrieve all staff details
+@app.route("/get_staff", methods=["GET"])
+def get_staff():
+    try:
+        conn = sqlite3.connect("db_AcademicPlannerAdvisor.db")
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM staff")
+        staff_list = cursor.fetchall()
+        conn.close()
+
+        staff_data = []
+        for staff in staff_list:
+            staff_data.append({
+                "id": staff[0],
+                "staff_name": staff[1],
+                "department": staff[2],
+                "semester": staff[3],
+                "year": staff[4],
+                "no_of_subjects": staff[5],
+                "subject_names": staff[6]
+            })
+
+        return jsonify(staff_data)
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/save_classroom", methods=["POST"])
+def save_classroom():
+    try:
+        data = request.json  # Get JSON data from frontend
+
+        # Extract form values
+        department = data.get("department")
+        no_of_classroom = data.get("no_of_classroom")
+        classroom_names = data.get("classroom_names")
+        no_of_lab = data.get("no_of_lab")
+        lab_names = data.get("lab_names")
+
+        if not (department and classroom_names and lab_names):
+            return jsonify({"error": "Missing required fields"}), 400
+
+        conn = sqlite3.connect("db_AcademicPlannerAdvisor.db")
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO classrooms (department, no_of_classroom, classroom_names, no_of_lab, lab_names)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (department, no_of_classroom, classroom_names, no_of_lab, lab_names))
+
+        conn.commit()
+        conn.close()
+
+        return jsonify({"message": "Classroom details saved successfully"}), 201
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == '__main__':
