@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html>
 <head>
-<style>
-        body {background: url('static/bg_page.jpg');background-size: cover; font-family: Arial, sans-serif; margin: 20px; }
+    <title>Add Staff Details</title>
+    <style>
+        body {background: url('static/bg_page.jpg');background-size: cover; font-family: Arial, sans-serif; margin-right: 70px; margin-top:150px}
         .container { max-width: 700px; margin: auto; }
         .delete-btn { background-color: red; color: white; width: 100%; cursor: pointer; }
         .save-btn { background-color: #04AA6D; color: white; border: none; width: 100%; padding: 10px 15px; cursor: pointer; margin-top: 20px; display: block; }
@@ -20,9 +21,77 @@
             margin: 8px 0;
             border: none;
             cursor: pointer;
-            width: 100%;
+            width: 73%;
         }
+        .hint{
+        display: block;
+        font-size: 12px;
+         color: gray;}
     </style>
+
+</head>
+<body>
+	<div class="container">
+		<h2>Add Staff Members</h2>
+		<label for="staff_name" >Staff Name :</label>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+		<input type="text" id="staff_name" name="staff_name" required placeholder="Enter the staff name"></br>
+		
+
+	    <label for="department">Department:</label>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <select id="department">
+            <option value="none" selected disabled>None</option>
+            <option value="CE">Computer Engineering (CE)</option>
+            <option value="IT">Information Technology(IT)</option>
+            <option value="ECE">Electronics & Communication Engineering (ECE)</option>
+            <option value="EEE">Electrical & Electronics Engineering (EEE)</option>
+            <option value="MECH">Mechanical Engineering (MECH)</option>
+            <option value="AUTO">Automobile Engineering (AUTO)</option>
+            <option value="CIVIL">Civil Engineering (CIVIL)</option>
+        </select>
+        <br>
+
+        <label for="semester">Semester:</label>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <select id="semester">
+            <option value="none" selected disabled>None</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+        </select>
+        <br>
+
+        <label for="year">Year:</label>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <select id="year">
+            <option value="none" selected disabled>None</option>
+            <option value="Year I">Year I</option>
+            <option value="Year II">Year II</option>
+            <option value="Year III">Year III</option>
+        </select>
+        <br>
+        <label for="no_of_subjects">No. of Subjects Taken:</label>
+        <input type="number" id="no_of_subjects" name="no_of_subjects" min="1" max="6" placeholder="Enter the no.of subject taken by the staff" required><br><br>
+
+        <label for="subject_names">Subject Names :</label>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <input type="text" id="subject_names" name="subject_names" placeholder="Enter the subjects name ,use comma to separate" required><br><br>
+
+         <label for="subject_type">Subject Type:</label>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <select id="subject_type">
+            <option value="none" selected disabled>None</option>
+            <option value="Theory">Theory</option>
+            <option value="Practical">Practical</option>
+            <option value="Practicum">Practicum</option>
+        </select><br><br>
+
+        <button type="submit" onclick="saveStaffDetails()">Save Staff Details</button>
+    </div>
     <script>
         function saveStaffDetails() {
             const staff_name = document.getElementById("staff_name").value;
@@ -31,8 +100,9 @@
             const year = document.getElementById("year").value;
             const no_of_subjects = document.getElementById("no_of_subjects").value;
             const subject_names = document.getElementById("subject_names").value;
+            const subject _type = document.getElementById("subject_type").value;
 
-            if (!staff_name || !department || !semester || !year || !no_of_subjects || !subject_names) {
+            if (!staff_name || !department || !semester || !year || !no_of_subjects || !subject_names || !subject_type) {
                 alert("Please fill in all fields.");
                 return;
             }
@@ -43,7 +113,8 @@
                 semester: semester,
                 year: year,
                 no_of_subjects: parseInt(no_of_subjects),
-                subject_names: subject_names
+                subject_names: subject_names,
+                subject_type: subject_type
             };
 
             fetch("http://127.0.0.1:5000/save_staff", {
@@ -64,61 +135,6 @@
         }
     </script>
 
-</head>
-<body>
-	<div class="container">
-        <form>
-		<h2>Add Staff Members</h2>
-		<label for="staff_name" >Staff Name :</label>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-		<input type="text" id="staff_name" name="staff_name" required></br>
-		
-
-	    <label for="department">Department:</label>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-        <select id="department">
-            <option value="none" selected disabled>None</option>
-            <option value="CE">Computer Engineering (CE)</option>
-            <option value="IT">Information Technology(IT)</option>
-            <option value="ECE">Electronics & Communication Engineering (ECE)</option>
-            <option value="EEE">Electrical & Electronics Engineering (EEE)</option>
-            <option value="MECH">Mechanical Engineering (MECH)</option>
-            <option value="AUTO">Automobile Engineering (AUTO)</option>
-            <option value="CIVIL">Civil Engineering (CIVIL)</option>
-        </select>
-        <br>
-
-        <label for="semester">Semester:</label>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-        <select id="semester">
-            <option value="none" selected disabled>None</option>
-            <option value="1">1</option>
-            <option value="2">2</option>
-            <option value="3">3</option>
-            <option value="4">4</option>
-            <option value="5">5</option>
-            <option value="6">6</option>
-        </select>
-        <br>
-
-        <label for="year">Year:</label>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-        <select id="year">
-            <option value="none" selected disabled>None</option>
-            <option value="Year I">Year I</option>
-            <option value="Year II">Year II</option>
-            <option value="Year III">Year III</option>
-        </select>
-        <br>
-        <label for="no_of_subjects">No. of Subjects Taken:</label>
-        <input type="number" id="no_of_subjects" name="no_of_subjects" min="1" max="6" required><br><br>
-
-        <label for="subject_names">Subject Names (comma-separated):</label>
-        <input type="text" id="subject_names" name="subject_names" required><br><br>
-
-        <button type="submit">Save Staff Details</button>
-        </form>
-    </div>
 </body>
 </html>
 
