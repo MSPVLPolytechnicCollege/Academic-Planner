@@ -3,7 +3,7 @@
 <head>
     <title>Add Subjects</title>
     <style>
-        body {background: url('static/bg_page.jpg');background-size: cover; font-family: Arial, sans-serif; margin: 20px; }
+        body {background: url('static/bg_page.jpg');background-size: cover; font-family: Arial, sans-serif; margin-right: 50px; }
         .container { max-width: 700px; margin: auto; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th, td { border: 1px solid black; padding: 8px; text-align: left; }
@@ -17,14 +17,14 @@
             border: 1px solid #ccc;
             box-sizing: border-box;
         }
-        .button_addSubject {
+        button{
             background-color: #04AA6D;
             color: white;
             padding: 12px 20px;
             margin: 8px 0;
             border: none;
             cursor: pointer;
-            width: 30%;
+            width:50 %;
         }
     </style>
 </head>
@@ -97,7 +97,7 @@
             <option value="5">5</option>
             <option value="6">6</option>
         </select>
-        <button onclick="addSubject()" class="button_addSubject">Add Subject</button>
+        <button onclick="addSubject()" >Add Subject</button>
 
         <table>
             <thead>
