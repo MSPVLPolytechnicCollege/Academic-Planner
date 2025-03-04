@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
        <style>
         body {
             font-family: Arial, sans-serif;
@@ -29,7 +28,7 @@
         }
 
         .button {
-            width: 250px;
+            width: 300px;
             padding: 15px;
             font-size: 18px;
             background-color: rgba(255, 255, 255, 0.8); /* Slight transparency */
@@ -47,6 +46,7 @@
 
         .generate-button {
             background-color: #906060;
+            width: 260px;
             color: white;
             font-weight: bold;
         }
@@ -74,17 +74,19 @@
 
     <h2>GENERATE TIMETABLE</h2><br>
     <label for="timetable_name"><b>Timetable Name : </b></label>
-    <input type="text" placeholder="Enter the timetable name" name="timetable_name" required><br><br>
+    <input type="text"  id="timetable_name" placeholder="Enter the timetable name" name="timetable_name" required><br><br>
 
     <div class="container" >
 
         <form action="{{ url_for('add_subjects') }}" ><button class="button">Step 1 - Add Subjects</button></form>
-        <button class="button">Step 2 - Add Teachers</button>
-        <button class="button">Step 3 - Class List</button>
-    </div>
+        <form action="{{ url_for('add_staffs') }}" ><button class="button">Step 2 - Add Teachers</button></form>
+        <form action="{{ url_for('add_classes') }}" ><button class="button">Step 3 - Class List</button></form>
+    </div><br>
 
     <div class="row-three">
-        <button class="button generate-button">Generate Schedule</button>
+        <button class="button generate-button">Generate Staff Schedule</button>
+        <button class="button generate-button">Generate Lab Schedule</button>
+        <button class="button generate-button">Generate Class Schedule</button>
     </div>
 
 </body>
