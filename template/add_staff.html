@@ -35,8 +35,8 @@
 		<h2>Add Staff Members</h2>
 		<label for="staff_name" >Staff Name :</label>
         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-		<input type="text" id="staff_name" name="staff_name" required placeholder="Enter the staff name"></br>
-		
+		<input type="text" id="staff_name" name="staff_name" required placeholder="Enter the staff name"><br>
+
 
 	    <label for="department">Department:</label>
         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -75,68 +75,89 @@
         </select>
         <br>
         <label for="no_of_subjects">No. of Subjects Taken:</label>
-        <input type="number" id="no_of_subjects" name="no_of_subjects" min="1" max="6" placeholder="Enter the no.of subject taken by the staff" required><br><br>
+        <input type="number" oninput="generateSubjectFields()" id="no_of_subjects" name="no_of_subjects" min="1" max="6" placeholder="Enter the no.of subject taken by the staff" required><br>
 
-        <label for="subject_names">Subject Names :</label>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-        <input type="text" id="subject_names" name="subject_names" placeholder="Enter the subjects name ,use comma to separate" required><br><br>
-
-         <label for="subject_type">Subject Type:</label>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-        <select id="subject_type">
-            <option value="none" selected disabled>None</option>
-            <option value="Theory">Theory</option>
-            <option value="Practical">Practical</option>
-            <option value="Practicum">Practicum</option>
-        </select><br><br>
+        <div id="subject_fields"></div>
 
         <button type="submit" onclick="saveStaffDetails()">Save Staff Details</button>
     </div>
     <script>
-        function saveStaffDetails() {
-            const staff_name = document.getElementById("staff_name").value;
-            const department = document.getElementById("department").value;
-            const semester = document.getElementById("semester").value;
-            const year = document.getElementById("year").value;
-            const no_of_subjects = document.getElementById("no_of_subjects").value;
-            const subject_names = document.getElementById("subject_names").value;
-            const subject _type = document.getElementById("subject_type").value;
+    function generateSubjectFields() {
+        const count = document.getElementById("no_of_subjects").value;
+        const container = document.getElementById("subject_fields");
+        container.innerHTML = ""; // Clear previous fields
 
-            if (!staff_name || !department || !semester || !year || !no_of_subjects || !subject_names || !subject_type) {
-                alert("Please fill in all fields.");
+        for (let i = 1; i <= count; i++) {
+            container.innerHTML += `
+                <label>Subject ${i} Name:</label>
+               &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input type="text" id="subject_${i}" placeholder="Enter Subject ${i}" required><br>
+
+                <label>Subject ${i} Type:</label>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                <select id="subject_type_${i}">
+                    <option value="none" selected disabled>None</option>
+                    <option value="Theory">Theory</option>
+                    <option value="Practical">Practical</option>
+                    <option value="Practicum">Practicum</option>
+                    <option value="PD/PT">PD/PT</option>
+                </select><br><br>
+            `;
+        }
+    }
+    function saveStaffDetails()
+    {
+        const staff_name = document.getElementById("staff_name").value.trim();
+        const department = document.getElementById("department").value;
+        const semester = document.getElementById("semester").value;
+        const year = document.getElementById("year").value;
+        const no_of_subjects = parseInt(document.getElementById("no_of_subjects").value);
+
+        let subjectNames = [];
+        let subjectTypes = [];
+
+        for (let i = 1; i <= no_of_subjects; i++)
+        {
+            let subject_name = document.getElementById(`subject_${i}`).value.trim();
+            let subject_type = document.getElementById(`subject_type_${i}`).value;
+
+            if (!subject_name)
+            {
+                alert(`Please enter Subject ${i} Name.`);
                 return;
             }
 
-            const staffData = {
-                staff_name: staff_name,
-                department: department,
-                semester: semester,
-                year: year,
-                no_of_subjects: parseInt(no_of_subjects),
-                subject_names: subject_names,
-                subject_type: subject_type
-            };
-
-            fetch("http://127.0.0.1:5000/save_staff", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify(staffData)
-            })
-            .then(response => response.json())
-            .then(data => {
-                alert(data.message || data.error);
-            })
-            .catch(error => {
-                alert("Error saving staff details!");
-                console.error(error);
-            });
+            subjectNames.push(subject_name);
+            subjectTypes.push(subject_type);
         }
-    </script>
 
+        const staffData =
+        {
+            staff_name: staff_name,
+            department: department,
+            semester: semester,
+            year: year,
+            no_of_subjects: no_of_subjects,
+            subject_names: subjectNames.join(", "),  // Convert array to string
+            subject_types: subjectTypes.join(", ")   // Convert array to string
+        };
+
+        console.log("Sending staff data:", staffData);
+
+        fetch("http://127.0.0.1:5000/save_staff", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(staffData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert(data.message || "Staff details saved successfully!");
+        })
+        .catch(error => {
+            alert("Error saving staff details!");
+            console.error(error);
+        });
+    }
+
+    </script>
 </body>
 </html>
-
-
-		
