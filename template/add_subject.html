@@ -84,6 +84,7 @@
             <option value="Theory">Theory</option>
             <option value="Practical">Practical</option>
             <option value="Practicum">Practicum</option>
+            <option value="PD/PT">PD/PT</option>
         </select><br>
 
         <label for="no_of_hours">No.Of.Hours per Week:</label>
@@ -115,15 +116,15 @@
             <tbody id="subjectTable"></tbody>
         </table>
 
-        <button class="save-btn">Save Data</button>
+        <button  type="submit" class="save-btn">Save Data</button>
     </div>
 
-<script>
+    <script>
     document.addEventListener("DOMContentLoaded", () => {
-    document.querySelector(".save-btn").addEventListener("click", saveDataToDB);});
+        document.querySelector(".save-btn").addEventListener("click", saveDataToDB);
+    });
 
-    function addSubject()
-    {
+    function addSubject() {
         const department = document.getElementById("department").value;
         const semester = document.getElementById("semester").value;
         const year = document.getElementById("year").value;
@@ -132,38 +133,39 @@
         const subjectType = document.getElementById("subject_type").value;
         const noOfHours = document.getElementById("no_of_hours").value;
 
-       if (!department || !semester || !year || !subjectCode || !subject || !subjectType || !noOfHours)
-        {
+        if (!department || !semester || !year || !subjectCode || !subject || !subjectType || !noOfHours) {
             alert("Please enter all details.");
             return;
         }
 
-       // Check for duplicate subject codes
-       const table = document.getElementById("subjectTable");
-       const rows = table.getElementsByTagName("tr");
-       for (let i = 0; i < rows.length; i++)
-        {
-            if (rows[i].cells[0].innerText.trim() === subjectCode)
-            {
-                alert("Subject code already exists!");
-                return;
+        // Get table body
+        const tableBody = document.getElementById("subjectTable");
+        const rows = tableBody.getElementsByTagName("tr");
+
+        // Check for duplicates unless subjectType is PD/PT
+        if (subjectType !== "PD/PT") {
+            for (let i = 0; i < rows.length; i++) {
+                if (rows[i].cells[0].innerText.trim().toLowerCase() === subjectCode.toLowerCase()) {
+                    alert("Subject code already exists!");
+                    return;
+                }
             }
         }
 
         // Create new row
         const row = document.createElement("tr");
         row.innerHTML = `
-        <td>${subjectCode}</td>
-        <td>${department}</td>
-        <td>${semester}</td>
-        <td>${year}</td>
-        <td>${subject}</td>
-        <td>${subjectType}</td>
-        <td>${noOfHours}</td>
-        <td><button class="delete-btn" onclick="deleteRow(this)">Delete</button></td>
+            <td>${subjectCode}</td>
+            <td>${department}</td>
+            <td>${semester}</td>
+            <td>${year}</td>
+            <td>${subject}</td>
+            <td>${subjectType}</td>
+            <td>${noOfHours}</td>
+            <td><button class="delete-btn" onclick="deleteRow(this)">Delete</button></td>
         `;
 
-        table.appendChild(row);
+        tableBody.appendChild(row);
 
         // Clear inputs after adding
         document.getElementById("subject_code").value = "";
@@ -172,65 +174,56 @@
         document.getElementById("no_of_hours").selectedIndex = 0;
     }
 
-    function deleteRow(button)
-    {
+    function deleteRow(button) {
         button.closest("tr").remove();
     }
 
-    function saveDataToDB(event)
-    {
+    function saveDataToDB(event) {
         event.preventDefault();
 
         const table = document.getElementById("subjectTable");
         const rows = table.getElementsByTagName("tr");
         const subjects = [];
 
-        for (let i = 0; i < rows.length; i++)
-        {
+        for (let i = 0; i < rows.length; i++) {
             const cells = rows[i].getElementsByTagName("td");
-            if (cells.length === 8)
-            {  // Ensure correct row length
+            if (cells.length === 8) {  // Ensure correct row length
                 subjects.push({
-                subject_code: cells[0].innerText.trim(),
-                department: cells[1].innerText.trim(),
-                semester: cells[2].innerText.trim(),
-                year: cells[3].innerText.trim(),
-                subject_name: cells[4].innerText.trim(),
-                subject_type: cells[5].innerText.trim(),
-                no_of_hours: cells[6].innerText.trim()
-            });
+                    subject_code: cells[0].innerText.trim(),
+                    department: cells[1].innerText.trim(),
+                    semester: cells[2].innerText.trim(),
+                    year: cells[3].innerText.trim(),
+                    subject_name: cells[4].innerText.trim(),
+                    subject_type: cells[5].innerText.trim(),
+                    no_of_hours: cells[6].innerText.trim()
+                });
+            }
         }
+
+        if (subjects.length === 0) {
+            alert("No subjects to save.");
+            return;
+        }
+
+        console.log("Sending data:", subjects);
+
+        fetch("/save_subjects", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ subjects })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert("Error: " + data.error);
+            } else {
+                alert(data.message);
+            }
+        })
+        .catch(error => console.error("Error:", error));
     }
-
-    if (subjects.length === 0)
-    {
-        alert("No subjects to save.");
-        return;
-    }
-
-    console.log("Sending data:", subjects);
-
-    fetch("/save_subjects",
-     {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subjects })
-     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.error)
-        {
-            alert("Error: " + data.error);
-        }
-        else
-        {
-            alert(data.message);
-        }
-    })
-    .catch(error => console.error("Error:", error));
-}
-
 </script>
+
 
 </body>
 </html>
