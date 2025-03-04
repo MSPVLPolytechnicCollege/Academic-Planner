@@ -172,51 +172,6 @@ def update_password():
     return render_template('update.html')  # Render update password page
 
 
-def init_db():
-    conn = sqlite3.connect("db_AcademicPlannerAdvisor.db")
-    cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS subjects (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            subject_code TEXT UNIQUE NOT NULL,
-            department TEXT NOT NULL,
-            semester TEXT NOT NULL,
-            year TEXT NOT NULL,
-            subject_name TEXT NOT NULL,
-            subject_type TEXT NOT NULL,
-            no_of_hours INTEGER NOT NULL
-        )
-    ''')
-    cursor.execute('''
-            CREATE TABLE IF NOT EXISTS staff (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                staff_name TEXT NOT NULL,
-                department TEXT NOT NULL,
-                semester TEXT NOT NULL,
-                year TEXT NOT NULL,
-                no_of_subjects INTEGER NOT NULL,
-                subject_names TEXT NOT NULL
-            )
-        ''')
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS classrooms (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            department TEXT NOT NULL,
-            no_of_classroom INTEGER NOT NULL,
-            classroom_names TEXT NOT NULL,
-            no_of_lab INTEGER NOT NULL,
-            lab_names TEXT NOT NULL
-        )
-    ''')
-
-    conn.commit()
-    conn.close()
-
-
-# To execute the function
-init_db()
-
-
 @app.route("/save_subjects", methods=["POST"])
 def save_subjects():
     try:
@@ -240,7 +195,7 @@ def save_subjects():
             cursor.execute(f"""
                 CREATE TABLE IF NOT EXISTS {table_name} (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    subject_code TEXT UNIQUE,
+                    subject_code TEXT ,
                     department TEXT,
                     semester TEXT,
                     year TEXT,
@@ -266,7 +221,7 @@ def save_subjects():
 
         conn.commit()
         conn.close()
-        return jsonify({"message": "Subjects saved successfully!"})
+        return jsonify({"message": f"Subjects saved successfully in {table_name}!"})
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -283,42 +238,39 @@ def save_staff():
         semester = data.get("semester")
         year = data.get("year")
         no_of_subjects = data.get("no_of_subjects")
-        subject_names = data.get("subject_names")
-        subject_type = data.get("subject_type")
+        subject_names = data.get("subject_names")  # Comma-separated string
+        subject_types = data.get("subject_types")  # Comma-separated string
 
-        # Ensure all fields are provided
-        if not all([staff_name, department, semester, year, no_of_subjects, subject_names, subject_type]):
+        # Ensure all required fields are provided
+        if not all([staff_name, department, semester, year, no_of_subjects, subject_names, subject_types]):
             return jsonify({"error": "All fields are required"}), 400
-
-        # Convert subject_names list to a comma-separated string
-        subject_names_str = ", ".join(subject_names)
 
         # Connect to SQLite database
         conn = sqlite3.connect("db_AcademicPlannerAdvisor.db")
         cursor = conn.cursor()
 
-        # 🔹 Table name based only on department (e.g., staff_CE, staff_IT)
+        # Table name based on department
         table_name = f"staff_{department}"
 
-        # 🔹 Create table if it doesn't exist
+        # Create table if it doesn't exist
         cursor.execute(f"""
             CREATE TABLE IF NOT EXISTS {table_name} (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 staff_name TEXT NOT NULL,
-                department TEXT,
-                semester TEXT,
-                year TEXT,
-                no_of_subjects INTEGER,
-                subject_names TEXT,
-                subject_type TEXT
+                department TEXT NOT NULL,
+                semester TEXT NOT NULL,
+                year TEXT NOT NULL,
+                no_of_subjects INTEGER NOT NULL,
+                subject_names TEXT NOT NULL,  -- Stores names as comma-separated values
+                subject_types TEXT NOT NULL   -- Stores types as comma-separated values
             )
         """)
 
-        #  Insert data into the dynamically created table
+        # Insert staff details into the table
         cursor.execute(f"""
-            INSERT INTO {table_name} (staff_name, department, semester, year, no_of_subjects, subject_names,
-            subject_type) VALUES (?, ?, ?, ?, ?, ?)
-        """, (staff_name, department, semester, year, no_of_subjects, subject_names_str, subject_type))
+            INSERT INTO {table_name} (staff_name, department, semester, year, no_of_subjects, subject_names, subject_types) 
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (staff_name, department, semester, year, no_of_subjects, subject_names, subject_types))
 
         # Commit and close connection
         conn.commit()
@@ -340,25 +292,46 @@ def save_classroom():
 
         # Extract form values
         department = data.get("department")
-        no_of_classroom = data.get("no_of_classroom")
-        classroom_names = data.get("classroom_names")
-        no_of_lab = data.get("no_of_lab")
-        lab_names = data.get("lab_names")
+        no_of_classroom = data.get("no_of_classroom", 0)
+        classroom_names = data.get("classroom_names", [])
+        no_of_lab = data.get("no_of_lab", 0)
+        lab_names = data.get("lab_names", [])
+
+        if not department or not classroom_names or not lab_names:
+            return jsonify({"error": "Missing required fields"}), 400
+
+        # Ensure values are stored as comma-separated strings
+        classroom_names_str = ", ".join(classroom_names)
+        lab_names_str = ", ".join(lab_names)
 
         if not (department and classroom_names and lab_names):
             return jsonify({"error": "Missing required fields"}), 400
 
         conn = sqlite3.connect("db_AcademicPlannerAdvisor.db")
         cursor = conn.cursor()
+
+        # table name based on department
+        table_name=f"ClassroomLab_list_{department}"
+
+        cursor.execute(f"""
+         CREATE TABLE IF NOT EXISTS {table_name} (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                department TEXT NOT NULL,
+                no_of_classroom INTEGER NOT NULL,
+                classroom_names TEXT NOT NULL,  
+                no_of_lab INTEGER NOT NULL,
+                lab_names TEXT NOT NULL 
+        """)
+
         cursor.execute('''
-            INSERT INTO classrooms (department, no_of_classroom, classroom_names, no_of_lab, lab_names)
+            INSERT INTO {table_name} (department, no_of_classroom, classroom_names, no_of_lab, lab_names)
             VALUES (?, ?, ?, ?, ?)
-        ''', (department, no_of_classroom, classroom_names, no_of_lab, lab_names))
+        ''', (department, no_of_classroom, classroom_names_str, no_of_lab, lab_names_str))
 
         conn.commit()
         conn.close()
 
-        return jsonify({"message": "Classroom details saved successfully"}), 201
+        return jsonify({"message": f"All details saved successfully in {table_name}"}), 201
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
