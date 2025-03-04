@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -45,34 +46,87 @@
 
         <label for="no_of_classroom">No. of Classrooms Available:</label>
         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-        <input type="number" id="no_of_classroom" name="no_of_classroom" min="1" max="3"  placeholder="Enter the no.of classrooms available" required><br><br>
+        <input type="number"  oninput="generateClassRoomFields()" id="no_of_classroom" name="no_of_classroom" min="1" max="3"  placeholder="Enter the no.of classrooms available" required><br><br>
 
-
-        <label for="classroom_names">Classroom Names :</label>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-        <input type="text" id="classroom_names" name="classroom_names" placeholder="Enter the classrooms name (comma-separated)" required><br><br>
+        <div id="Classroom_Fields"></div>
 
 	    <label for="no_of_lab">No. of Lab Available:</label>
         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-        <input type="number" id="no_of_lab" name="no_of_lab" min="1" max="5"  placeholder="Enter the no.of lab available" required><br><br>
-	
-	    <label for="lab_names">Lab Names (comma-separated):</label>
-        <input type="text" id="lab_names" name="lab_names" placeholder="Enter the lab names (comma-separated)" required><br><br><br>
+        <input type="number" oninput="generateLabFields()" id="no_of_lab" name="no_of_lab" min="1" max="5"  placeholder="Enter the no.of lab available" required><br><br>
 
+	    <div id="Lab_Fields"></div>
 
-        <button type="submit">Save Class List</button>
+        <button type="submit"  id="saveButton" onclick="saveDataToDB()">Save Class List</button>
     </div>
     <script>
-        document.getElementById("classroomForm").addEventListener("submit", function(event) {
-        event.preventDefault();
+    function generateClassRoomFields() {
+        const count = parseInt(document.getElementById("no_of_classroom").value) || 0;
+        const container = document.getElementById("Classroom_Fields");
+        container.innerHTML = ""; // Clear previous fields
 
-        let formData = {
-            department: document.getElementById("department").value,
-            no_of_classroom: document.getElementById("no_of_classroom").value,
-            classroom_names: document.getElementById("classroom_names").value,
-            no_of_lab: document.getElementById("no_of_lab").value,
-            lab_names: document.getElementById("lab_names").value
+        for (let i = 1; i <= count; i++) {
+            container.innerHTML += `
+                <label>Classroom ${i} Name:</label>
+                <input type="text" id="classroomname_${i}" placeholder="Enter Classroom Name ${i}" required><br>
+            `;
+        }
+    }
+
+    function generateLabFields() {
+        const count = parseInt(document.getElementById("no_of_lab").value) || 0;
+        const container = document.getElementById("Lab_Fields");
+        container.innerHTML = ""; // Clear previous fields
+
+        for (let i = 1; i <= count; i++) {
+            container.innerHTML += `
+                <label>Lab ${i} Name:</label>
+                <input type="text" id="labname_${i}" placeholder="Enter Lab Name ${i}" required><br>
+            `;
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        document.getElementById("saveButton").addEventListener("click", saveDataToDB);
+    });
+
+    function saveDataToDB() {
+        const department = document.getElementById("department").value.trim();
+        const noOfClassroom = parseInt(document.getElementById("no_of_classroom").value) || 0;
+        const noOfLab = parseInt(document.getElementById("no_of_lab").value) || 0;
+
+        let classroomNames = [];
+        let labNames = [];
+
+        for (let i = 1; i <= noOfClassroom; i++) {
+            const classroomInput = document.getElementById(`classroomname_${i}`);
+            if (classroomInput && classroomInput.value.trim() !== "") {
+                classroomNames.push(classroomInput.value.trim());
+            }
+        }
+
+        for (let i = 1; i <= noOfLab; i++) {
+            const labInput = document.getElementById(`labname_${i}`);
+            if (labInput && labInput.value.trim() !== "") {
+                labNames.push(labInput.value.trim());
+            }
+        }
+
+        // Validation: Ensure no field is empty
+        if (!department || classroomNames.length === 0 || labNames.length === 0) {
+            alert("Error: Please fill in all required fields!");
+            return;
+        }
+
+        // Convert values to appropriate formats
+        const formData = {
+            department: department,
+            no_of_classroom: noOfClassroom,
+            classroom_names: classroomNames,
+            no_of_lab: noOfLab,
+            lab_names: labNames
         };
+
+        console.log("Sending Data:", formData); // Debugging
 
         fetch("/save_classroom", {
             method: "POST",
@@ -80,12 +134,22 @@
             body: JSON.stringify(formData)
         })
         .then(response => response.json())
-        .then(data => alert(data.message))
-        .catch(error => console.error("Error:", error));
+        .then(data => {
+            if (data.error) {
+                alert("Error: " + data.error);
+            } else {
+                alert("Success: " + data.message);
+                document.getElementById("classroomForm").reset();
+                document.getElementById("Classroom_Fields").innerHTML = "";
+                document.getElementById("Lab_Fields").innerHTML = "";
+            }
+        })
+        .catch(error => {
+            console.error("Error:", error);
+            alert("⚠️ Something went wrong! Please try again.");
         });
+    }
     </script>
+
 </body>
 </html>
-
-
-		
