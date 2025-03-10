@@ -268,9 +268,9 @@ def save_staff():
 
         # Insert staff details into the table
         cursor.execute(f"""
-            INSERT INTO {table_name} (staff_name, department, semester, year, no_of_subjects, subject_names, subject_types) 
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (staff_name, department, semester, year, no_of_subjects, subject_names, subject_types))
+            INSERT INTO {table_name} (staff_name, department, semester, year, no_of_subjects, subject_names, 
+            subject_types) VALUES (?, ?, ?, ?, ?, ?, ?)
+             """, (staff_name, department, semester, year, no_of_subjects, subject_names, subject_types))
 
         # Commit and close connection
         conn.commit()
@@ -288,24 +288,17 @@ def save_staff():
 @app.route("/save_classroom", methods=["POST"])
 def save_classroom():
     try:
-        data = request.json  # Get JSON data from frontend
+        # Receive JSON data from request
+        data = request.json
+        department = data.get("department").replace(" ", "_")  # Replace spaces with underscores
+        no_of_classroom = data.get("no_of_classroom")
+        no_of_lab = data.get("no_of_lab")
+        classroom_names = data.get("classroom_names")  # Comma-separated string
+        lab_names = data.get("lab_names")  # Comma-separated string
 
-        # Extract form values
-        department = data.get("department")
-        no_of_classroom = data.get("no_of_classroom", 0)
-        classroom_names = data.get("classroom_names", [])
-        no_of_lab = data.get("no_of_lab", 0)
-        lab_names = data.get("lab_names", [])
-
-        if not department or not classroom_names or not lab_names:
-            return jsonify({"error": "Missing required fields"}), 400
-
-        # Ensure values are stored as comma-separated strings
-        classroom_names_str = ", ".join(classroom_names)
-        lab_names_str = ", ".join(lab_names)
-
-        if not (department and classroom_names and lab_names):
-            return jsonify({"error": "Missing required fields"}), 400
+        # Ensure all required fields are provided
+        if not all([department,  no_of_classroom, classroom_names, no_of_lab, lab_names]):
+            return jsonify({"error": "All fields are required"}), 400
 
         conn = sqlite3.connect("db_AcademicPlannerAdvisor.db")
         cursor = conn.cursor()
@@ -326,7 +319,7 @@ def save_classroom():
         cursor.execute('''
             INSERT INTO {table_name} (department, no_of_classroom, classroom_names, no_of_lab, lab_names)
             VALUES (?, ?, ?, ?, ?)
-        ''', (department, no_of_classroom, classroom_names_str, no_of_lab, lab_names_str))
+        ''', (department, no_of_classroom, classroom_names, no_of_lab, lab_names))
 
         conn.commit()
         conn.close()
