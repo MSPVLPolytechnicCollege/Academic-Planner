@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html>
 <head>
     <title>Add Class List</title>
     <style>
-        body {background: url('static/bg_page.jpg');background-size: cover; font-family: Arial, sans-serif; margin-right: 70px; margin-top:150px }
+        body {background: url('static/bg_page.jpg');background-size: cover; font-family: Arial, sans-serif; margin-right: 70px; margin-top:100px }
         .container { max-width: 700px; margin: auto; }
         .delete-btn { background-color: red; color: white; width: 100%; cursor: pointer; }
         .save-btn { background-color: #04AA6D; color: white; border: none; width: 100%; padding: 10px 15px; cursor: pointer; margin-top: 20px; display: block; }
@@ -31,7 +30,7 @@
 
 		<h2>Add Classroom Details</h2><br>
         <label for="department">Department:</label>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
         <select id="department">
             <option value="none" selected disabled>None</option>
             <option value="CE">Computer Engineering (CE)</option>
@@ -45,111 +44,118 @@
         <br>
 
         <label for="no_of_classroom">No. of Classrooms Available:</label>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-        <input type="number"  oninput="generateClassRoomFields()" id="no_of_classroom" name="no_of_classroom" min="1" max="3"  placeholder="Enter the no.of classrooms available" required><br><br>
+        &nbsp;
+        <input type="number"  oninput="generateClassroomNameFields()" id="no_of_classroom" name="no_of_classroom" min="1" max="3"  placeholder="Enter the no.of classrooms available" required><br>
 
-        <div id="Classroom_Fields"></div>
+        <div id="classroomName_fields"> </div>
 
 	    <label for="no_of_lab">No. of Lab Available:</label>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-        <input type="number" oninput="generateLabFields()" id="no_of_lab" name="no_of_lab" min="1" max="5"  placeholder="Enter the no.of lab available" required><br><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <input type="number" oninput="generateLabNameFields()" id="no_of_lab" name="no_of_lab" min="1" max="5"  placeholder="Enter the no.of lab available" required><br>
 
-	    <div id="Lab_Fields"></div>
+        <div id="labName_fields"> </div>
 
-        <button type="submit"  id="saveButton" onclick="saveDataToDB()">Save Class List</button>
+        <button type="submit" onclick="SaveClassListDetails()">Save Class List</button>
     </div>
     <script>
-    function generateClassRoomFields() {
-        const count = parseInt(document.getElementById("no_of_classroom").value) || 0;
-        const container = document.getElementById("Classroom_Fields");
+        function generateClassroomNameFields()
+        {
+        const count_class = document.getElementById("no_of_classroom").value;
+        const container = document.getElementById("classroomName_fields");
         container.innerHTML = ""; // Clear previous fields
 
-        for (let i = 1; i <= count; i++) {
+        for (let i = 1; i <= count_class; i++) {
             container.innerHTML += `
                 <label>Classroom ${i} Name:</label>
-                <input type="text" id="classroomname_${i}" placeholder="Enter Classroom Name ${i}" required><br>
+               &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+               <input type="text" id="Classroom_${i}" placeholder="Enter Classroom ${i}" required><br>
+
             `;
         }
     }
 
-    function generateLabFields() {
-        const count = parseInt(document.getElementById("no_of_lab").value) || 0;
-        const container = document.getElementById("Lab_Fields");
+    function generateLabNameFields()
+     {
+        const count_lab = document.getElementById("no_of_lab").value;
+        const container = document.getElementById("labName_fields");
         container.innerHTML = ""; // Clear previous fields
 
-        for (let i = 1; i <= count; i++) {
+
+        for (let i = 1; i <= count_lab; i++) {
             container.innerHTML += `
                 <label>Lab ${i} Name:</label>
-                <input type="text" id="labname_${i}" placeholder="Enter Lab Name ${i}" required><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                <input type="text" id="LAb_${i}" placeholder="Enter Lab ${i}" required><br>
+
             `;
         }
+
     }
+     function SaveClassListDetails()
+    {
+        const department = document.getElementById("department").value;
+        const no_of_classroom = parseInt(document.getElementById("no_of_classroom").value);
+        const no_of_lab=parseInt(document.getElementById("no_of_lab").value);
 
-    document.addEventListener("DOMContentLoaded", () => {
-        document.getElementById("saveButton").addEventListener("click", saveDataToDB);
-    });
 
-    function saveDataToDB() {
-        const department = document.getElementById("department").value.trim();
-        const noOfClassroom = parseInt(document.getElementById("no_of_classroom").value) || 0;
-        const noOfLab = parseInt(document.getElementById("no_of_lab").value) || 0;
+        let classroom_names = [];
+        let lab_names = [];
 
-        let classroomNames = [];
-        let labNames = [];
+        for (let i = 1; i <= no_of_classroom; i++)
+        {
+            let classroom_names = document.getElementById(`Classroom_${i}`).value;
 
-        for (let i = 1; i <= noOfClassroom; i++) {
-            const classroomInput = document.getElementById(`classroomname_${i}`);
-            if (classroomInput && classroomInput.value.trim() !== "") {
-                classroomNames.push(classroomInput.value.trim());
+            if (!classroom_name)
+            {
+                alert(`Please enter Classroom ${i} Name.`);
+                return;
             }
+
+            classroom_names.push(Classroom);
         }
 
-        for (let i = 1; i <= noOfLab; i++) {
-            const labInput = document.getElementById(`labname_${i}`);
-            if (labInput && labInput.value.trim() !== "") {
-                labNames.push(labInput.value.trim());
+        for (let i = 1; i <= no_of_lab; i++)
+        {
+
+            let lab_names= document.getElementById(`LAb_${i}`).value;
+
+            if (!lab_names)
+            {
+                alert(`Please enter Lab ${i} Name.`);
+                return;
             }
+            lab_names.push(Lab);
         }
 
-        // Validation: Ensure no field is empty
-        if (!department || classroomNames.length === 0 || labNames.length === 0) {
-            alert("Error: Please fill in all required fields!");
-            return;
-        }
-
-        // Convert values to appropriate formats
-        const formData = {
+        const ClassListData =
+        {
             department: department,
-            no_of_classroom: noOfClassroom,
-            classroom_names: classroomNames,
-            no_of_lab: noOfLab,
-            lab_names: labNames
+            no_of_classroom: no_of_classroom,
+            no_of_lab: no_of_lab,
+            classroom_names: classroom_names.join(", "),  // Convert array to string
+            lab_names: lab_names.join(", ")   // Convert array to string
         };
 
-        console.log("Sending Data:", formData); // Debugging
+        console.log("Sending staff data:", ClassListData);
 
-        fetch("/save_classroom", {
+        fetch("http://127.0.0.1:5000/save_classroom", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(formData)
+            body: JSON.stringify(ClassListData)
         })
         .then(response => response.json())
         .then(data => {
-            if (data.error) {
-                alert("Error: " + data.error);
-            } else {
-                alert("Success: " + data.message);
-                document.getElementById("classroomForm").reset();
-                document.getElementById("Classroom_Fields").innerHTML = "";
-                document.getElementById("Lab_Fields").innerHTML = "";
-            }
+            alert(data.message || "ClassList details saved successfully!");
         })
         .catch(error => {
-            console.error("Error:", error);
-            alert("⚠️ Something went wrong! Please try again.");
+            alert("Error saving ClassList details!");
+            console.error(error);
         });
     }
-    </script>
 
+    </script>
 </body>
 </html>
+
+
+		
