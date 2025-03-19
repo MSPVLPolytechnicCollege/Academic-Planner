@@ -1,6 +1,6 @@
 from flask import Flask, render_template, redirect, flash, session, url_for, request, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
-import sqlite3,re
+import sqlite3, re
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
@@ -229,8 +229,8 @@ def save_subjects():
                                WHERE subject_code=? AND department=? AND semester=? AND year=? 
                                  AND subject_name= ? AND subject_type=? AND no_of_hours=?
                                """, (subject["subject_code"], subject["department"], subject["semester"],
-                                subject["year"], subject["subject_name"], subject["subject_type"],
-                                subject["no_of_hours"]))
+                                     subject["year"], subject["subject_name"], subject["subject_type"], 
+                                     subject["no_of_hours"]))
 
                 existing_record = cursor.fetchone()
 
@@ -271,7 +271,7 @@ def save_staff():
         department = re.sub(r"[^a-zA-Z0-9_]", "_", department)  # Replace special characters with "_"
         semester = data.get("semester")
         year = data.get("year")
-        no_of_subjects = data.get("no_of_subjects",0)
+        no_of_subjects = data.get("no_of_subjects", 0)
 
         subject_names = data.get("subject_names", [])  # Expecting a list
         subject_types = data.get("subject_types", [])  # Expecting a list
@@ -284,8 +284,8 @@ def save_staff():
             return jsonify({"error": "Subject names and types cannot be empty"}), 400
 
         # Convert list to comma-separated string
-        subject_names_str=",".join(subject_names)
-        subject_types_str=",".join(subject_types)
+        subject_names_str = ",".join(subject_names)
+        subject_types_str = ",".join(subject_types)
 
         # Ensure all required fields are provided
         if not all([staff_name, department, semester, year, no_of_subjects, subject_names_str, subject_types_str]):
@@ -317,14 +317,13 @@ def save_staff():
                SELECT * FROM {table_name}
                WHERE staff_name=? AND department=? AND semester=? AND year=? 
                  AND subject_names= ? AND subject_types=?
-           """, (staff_name, department, semester, year, subject_names_str,subject_types_str))
+           """, (staff_name, department, semester, year, subject_names_str, subject_types_str))
 
         existing_record = cursor.fetchone()
 
         if existing_record:
             conn.close()
             return jsonify({"error": "Duplicate entry! This staff data already exists."}), 400
-
 
         # Insert staff details into the table
         cursor.execute(f"""
@@ -352,25 +351,25 @@ def save_classroom():
         data = request.json
         department = data.get("department").strip()
         department = re.sub(r"[^a-zA-Z0-9_]", "_", department)  # Replace special characters with "_"
-        no_of_classroom = data.get("no_of_classroom",0)
-        no_of_lab = data.get("no_of_lab",0)
-        classroom_names = data.get("classroom_names",[])  # Comma-separated string
-        lab_names = data.get("lab_names",[])  # Comma-separated string
-
+        no_of_classroom = data.get("no_of_classroom", 0)
+        no_of_lab = data.get("no_of_lab", 0)
+        classroom_names = data.get("classroom_names", [])  # Comma-separated string
+        lab_names = data.get("lab_names", [])  # Comma-separated string
 
         # Ensure all required fields are provided
-        if not department or  no_of_classroom <=0 or not classroom_names or not all(classroom_names) or no_of_lab <=0 or not lab_names or not all(lab_names) :
+        if (not department or no_of_classroom <= 0 or not classroom_names or not all(classroom_names) 
+                or no_of_lab <= 0 or not lab_names or not all(lab_names)):
             return jsonify({"error": "All fields are required"}), 400
 
         # Convert list to comma-separated string
-        classroom_names_str= ",".join(classroom_names)
-        lab_names_str= ",".join(lab_names)
+        classroom_names_str = ",".join(classroom_names)
+        lab_names_str = ",".join(lab_names)
 
         conn = sqlite3.connect("db_AcademicPlannerAdvisor.db")
         cursor = conn.cursor()
 
         # table name based on department
-        table_name=f"ClassList_{department}"
+        table_name = f"ClassList_{department}"
 
         cursor.execute(f"""
          CREATE TABLE IF NOT EXISTS {table_name} (
@@ -395,7 +394,6 @@ def save_classroom():
             conn.close()
             return jsonify({"error": "Duplicate entry! This ClassList data already exists."}), 400
 
-
         cursor.execute(f'''
             INSERT INTO {table_name} (department, no_of_classroom, classroom_names, no_of_lab, lab_names)
             VALUES (?, ?, ?, ?, ?)
@@ -412,3 +410,4 @@ def save_classroom():
 
 if __name__ == '__main__':
     app.run(debug=True)
+    
