@@ -33,8 +33,13 @@
         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
         <select id="department">
             <option value="none" selected disabled>None</option>
-            <option value="CE">Computer Engineering (CE)</option>
-            <option value="IT">Information Technology(IT)</option>
+            <option value="Basic_Engg_CE&amp;IT">Basic CE and IT</option>
+            <option value="Basic_Engg_ECE">Basic ECE</option>
+            <option value="Basic_Engg_EEE">Basic EEE</option>
+            <option value="Basic_Engg_CIVIL">Basic CIVIL</option>
+            <option value="Basic_Engg_MECH">Basic MECH</option>
+            <option value="Basic_Engg_AUTO">Basic AUTO</option>
+            <option value="CE&amp;IT">Computer Engineering (CE) and Information Technology(IT)</option>
             <option value="ECE">Electronics & Communication Engineering (ECE)</option>
             <option value="EEE">Electrical & Electronics Engineering (EEE)</option>
             <option value="MECH">Mechanical Engineering (MECH)</option>
@@ -85,46 +90,49 @@
             container.innerHTML += `
                 <label>Lab ${i} Name:</label>
                 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-                <input type="text" id="LAb_${i}" placeholder="Enter Lab ${i}" required><br>
+                <input type="text" id="Lab_${i}" placeholder="Enter Lab ${i}" required><br>
 
             `;
         }
 
     }
+
+     document.addEventListener("DOMContentLoaded", () => {
+        document.querySelector("button").addEventListener("click", SaveClassListDetails);
+    });
+
      function SaveClassListDetails()
     {
         const department = document.getElementById("department").value;
         const no_of_classroom = parseInt(document.getElementById("no_of_classroom").value);
         const no_of_lab=parseInt(document.getElementById("no_of_lab").value);
 
-
         let classroom_names = [];
         let lab_names = [];
 
         for (let i = 1; i <= no_of_classroom; i++)
         {
-            let classroom_names = document.getElementById(`Classroom_${i}`).value;
-
-            if (!classroom_name)
+            let classroom = document.getElementById(`Classroom_${i}`).value.trim();
+            if (!classroom)
             {
                 alert(`Please enter Classroom ${i} Name.`);
                 return;
             }
 
-            classroom_names.push(Classroom);
+            classroom_names.push(classroom);
         }
 
         for (let i = 1; i <= no_of_lab; i++)
         {
 
-            let lab_names= document.getElementById(`LAb_${i}`).value;
+            let lab= document.getElementById(`Lab_${i}`).value.trim();
 
-            if (!lab_names)
+            if (!lab)
             {
                 alert(`Please enter Lab ${i} Name.`);
                 return;
             }
-            lab_names.push(Lab);
+            lab_names.push(lab);
         }
 
         const ClassListData =
@@ -132,8 +140,8 @@
             department: department,
             no_of_classroom: no_of_classroom,
             no_of_lab: no_of_lab,
-            classroom_names: classroom_names.join(", "),  // Convert array to string
-            lab_names: lab_names.join(", ")   // Convert array to string
+            classroom_names: classroom_names,
+            lab_names: lab_names
         };
 
         console.log("Sending staff data:", ClassListData);
@@ -145,12 +153,13 @@
         })
         .then(response => response.json())
         .then(data => {
-            alert(data.message || "ClassList details saved successfully!");
+            if (data.error) {
+                alert("Error: " + data.error);
+            } else {
+                alert(data.message);
+            }
         })
-        .catch(error => {
-            alert("Error saving ClassList details!");
-            console.error(error);
-        });
+        .catch(error => console.error("Error:", error));
     }
 
     </script>
