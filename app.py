@@ -47,6 +47,21 @@ def add_classes():
     return render_template('add_class.html')
 
 
+@app.route('/staff_timetable')
+def staff_timetable():
+    return render_template('staff_timetable.html')
+
+
+@app.route('/lab_timetable')
+def lab_timetable():
+    return render_template('lab_timetable.html')
+
+
+@app.route('/class_timetable')
+def class_timetable():
+    return render_template('class_timetable.html')
+
+
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     if request.method == 'POST':
