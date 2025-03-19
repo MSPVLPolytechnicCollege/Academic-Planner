@@ -3,7 +3,7 @@
 <head>
     <title>Add Staff Details</title>
     <style>
-        body {background: url('static/bg_page.jpg');background-size: cover; font-family: Arial, sans-serif; margin-right: 70px; margin-top:150px}
+        body {background: url('static/bg_page.jpg');background-size: cover; font-family: Arial, sans-serif; margin-right: 70px; margin-top:50px}
         .container { max-width: 700px; margin: auto; }
         .delete-btn { background-color: red; color: white; width: 100%; cursor: pointer; }
         .save-btn { background-color: #04AA6D; color: white; border: none; width: 100%; padding: 10px 15px; cursor: pointer; margin-top: 20px; display: block; }
@@ -42,6 +42,12 @@
         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
         <select id="department">
             <option value="none" selected disabled>None</option>
+            <option value="Basic_Engg_CE&amp;IT">Basic CE and IT</option>
+            <option value="Basic_Engg_ECE">Basic ECE</option>
+            <option value="Basic_Engg_EEE">Basic EEE</option>
+            <option value="Basic_Engg_CIVIL">Basic CIVIL</option>
+            <option value="Basic_Engg_MECH">Basic MECH</option>
+            <option value="Basic_Engg_AUTO">Basic AUTO</option>
             <option value="CE">Computer Engineering (CE)</option>
             <option value="IT">Information Technology(IT)</option>
             <option value="ECE">Electronics & Communication Engineering (ECE)</option>
@@ -87,8 +93,11 @@
         const container = document.getElementById("subject_fields");
         container.innerHTML = ""; // Clear previous fields
 
-        for (let i = 1; i <= count; i++) {
-            container.innerHTML += `
+        for (let i = 1; i <= count; i++)
+        {
+                 const subjectDiv = document.createElement("div");
+
+                subjectDiv.innerHTML += `
                 <label>Subject ${i} Name:</label>
                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input type="text" id="subject_${i}" placeholder="Enter Subject ${i}" required><br>
 
@@ -100,10 +109,42 @@
                     <option value="Practical">Practical</option>
                     <option value="Practicum">Practicum</option>
                     <option value="PD/PT">PD/PT</option>
-                </select><br><br>
+                </select><br>
+                <div id="batch_no_${i}"></div><br>
             `;
+             container.appendChild(subjectDiv); // Append subject fields to the container
+
+            //  Attach Event Listener for `onchange` AFTER element is added to the DOM
+            document.getElementById(`subject_type_${i}`).addEventListener("change", function ()
+            {
+            generateBatchDropdown(i);
+            });
         }
     }
+   function generateBatchDropdown(index)
+   {
+        const subjectType = document.getElementById(`subject_type_${index}`).value;
+        const extraOptionsDiv = document.getElementById(`batch_no_${index}`);
+
+        if (subjectType === "Practical" || subjectType === "Practicum")
+        {
+           extraOptionsDiv.innerHTML = `
+           <label>Batch No:</label>
+           &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            <select id="batch_select_${index}">
+              <option value="none" selected disabled>None</option>
+              <option value="batch_I">Batch I</option>
+              <option value="batch_II">Batch II</option>
+               <option value="batch_I_II">Batch I and Batch II</option>
+            </select><br>
+            `;
+        }
+        else
+        {
+           extraOptionsDiv.innerHTML = ""; // Clear the dropdown if another type is selected
+        }
+   }
+
     function saveStaffDetails()
     {
         const staff_name = document.getElementById("staff_name").value.trim();
@@ -119,45 +160,59 @@
         {
             let subject_name = document.getElementById(`subject_${i}`).value.trim();
             let subject_type = document.getElementById(`subject_type_${i}`).value;
+            let batch_no = null;
 
-            if (!subject_name)
+            // Ensure batch dropdown exists before retrieving its value
+            batchElement = document.getElementById(`batch_select_${i}`);
+            if ((subject_type === "Practical" || subject_type === "Practicum") && batchElement)
             {
-                alert(`Please enter Subject ${i} Name.`);
-                return;
+                batch_no = batchElement.value;
+                if (batch_no && batch_no !== "none")
+                {  //Ensure a valid batch is selected
+                    subject_type = `${subject_type} - ${batch_no}`;  // Append batch to subject type
+                }
             }
 
-            subjectNames.push(subject_name);
-            subjectTypes.push(subject_type);
+             if (!subject_name) {
+            alert(`️ Please enter Subject ${i} Name.`);
+            return;
         }
 
-        const staffData =
-        {
-            staff_name: staff_name,
-            department: department,
-            semester: semester,
-            year: year,
-            no_of_subjects: no_of_subjects,
-            subject_names: subjectNames.join(", "),  // Convert array to string
-            subject_types: subjectTypes.join(", ")   // Convert array to string
-        };
-
-        console.log("Sending staff data:", staffData);
-
-        fetch("http://127.0.0.1:5000/save_staff", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(staffData)
-        })
-        .then(response => response.json())
-        .then(data => {
-            alert(data.message || "Staff details saved successfully!");
-        })
-        .catch(error => {
-            alert("Error saving staff details!");
-            console.error(error);
-        });
+        subjectNames.push(subject_name);
+        subjectTypes.push(subject_type);
     }
 
+    const staffData = {
+        staff_name: staff_name,
+        department: department,
+        semester: semester,
+        year: year,
+        no_of_subjects: no_of_subjects,
+        subject_names: subjectNames,  //  Array
+        subject_types: subjectTypes  // Array
+    };
+
+    console.log("Sending staff data:", staffData);
+
+    fetch("http://127.0.0.1:5000/save_staff", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(staffData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            alert(" Error: " + data.error);
+        } else {
+            alert("" + data.message);
+        }
+    })
+    .catch(error => console.error("Error:", error));
+}
+
+
     </script>
+
+
 </body>
 </html>
