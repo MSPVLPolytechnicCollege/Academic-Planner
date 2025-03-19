@@ -78,36 +78,32 @@
 
     <div class="container" >
 
-        <form action="{{ url_for('add_subjects') }}" ><button class="button" onclick="validateAndProceed()">Step 1 - Add Subjects</button></form>
-        <form action="{{ url_for('add_staffs') }}" ><button class="button" onclick="validateAndProceed()">Step 2 - Add Teachers</button></form>
-        <form action="{{ url_for('add_classes') }}" ><button class="button" onclick="validateAndProceed()">Step 3 - Class List</button></form>
+        <button class="button" onclick="validateAndProceed('{{ url_for('add_subjects') }}')">Step 1 - Add Subjects</button>
+        <button class="button" onclick="validateAndProceed('{{ url_for('add_staffs') }}')">Step 2 - Add Teachers</button>
+        <button class="button" onclick="validateAndProceed('{{ url_for('add_classes') }}')">Step 3 - Class List</button>
     </div><br>
 
     <div class="row-three">
-        <button class="button generate-button" onclick="validateAndProceed()">Generate Staff Schedule</button>
-        <button class="button generate-button" onclick="validateAndProceed()">Generate Lab Schedule</button>
-        <button class="button generate-button" onclick="validateAndProceed()">Generate Class Schedule</button>
+        <button class="button generate-button" onclick="validateAndProceed('{{ url_for('staff_timetable') }}')">Generate Staff Schedule</button>
+        <button class="button generate-button" onclick="validateAndProceed('{{ url_for('lab_timetable') }}')">Generate Lab Schedule</button>
+        <button class="button generate-button" onclick="validateAndProceed('{{ url_for('class_timetable') }}')">Generate Class Schedule</button>
     </div>
 
 </body>
 <script>
-function validateAndProceed() {
-    const timetableName = document.getElementById("timetable_name").value.trim();
+function validateAndProceed(nextPageUrl)
+{
+    event.preventDefault(); //prevent from submission
+    let timetableName = document.getElementById("timetable_name").value.trim();
 
-    if (timetableName === "") {
+    if (! timetableName)
+    {
         alert("Please enter a timetable name before proceeding.");
-        return;
+        return ;
     }
-       //function validateAndProceed() {
-    const timetableName = document.getElementById("timetable_name").value.trim();
-
-    if (timetableName === "") {
-        alert("Please enter a timetable name before proceeding.");
-        return;
-    }
-    //window.location.href = "next_page.html"; // Change this to your actual page
-    }
-    }
+    //If validation pass , navigate to next page
+    window.location.assign(nextPageUrl);
+}
 </script>
 
 </html>
