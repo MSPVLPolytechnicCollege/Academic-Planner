@@ -43,15 +43,15 @@
             		<option value="AUTO">Automobile Engineering (AUTO)</option>
             		<option value="CIVIL">Civil Engineering (CIVIL)</option>
         	</select><br>
-		<label for="HoursPerDay">Semester:</label>
-        	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+		<label for="HoursPerDay">No of Hours per Day:</label>
+        	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 		<select id="HoursPerDay">
 			<option value="none" selected disabled>None</option>
 			<option value="7">7</option>
 			<option value="8">8</option>
 		</select><br>
 		<button onclick=SaveData() id="staff_timetable">GENERATE STAFF TIMETABLE</button>
+		</div>
 </body>
 <script>
 
@@ -60,7 +60,55 @@
         const department = document.getElementById("department").value;
         const hours_per_day=parseInt(document.getElementById("HoursPerDay").value);
 
-        if(HoursPerDay == 8)
+        if (!department || isNaN(hours_per_day))
         {
-        	time_solt =[9:00am-9:50am,9:50am-10:40am,10:40am-10:50am,10:50am-11:30am,11:30am-12:30pm,12:30pm-1:10pm,1:10pm-1:
+        	alert("Please enter all required fields.");
+        	return;
+    	}
+
+    	// Define the time slots based on hours_per_day
+    	let time_slot = [];
+
+        if(hours_per_day === 8)
+        {
+        	time_solt =[
+        	"9:00am-9:50am","9:50am-10:40am","10:40am-10:50am","10:50am-11:40am","11:40am-12:30pm",
+        	"12:30pm-1:10pm","1:15pm-2:05pm","2:05pm-2:55pm","2:55pm-3:05pm","3:05pm-3:55pm","3:55pm-4:45pm"
+        	];
+        }
+        else
+        {
+        	time_solt =[
+        	"9:00am-10:00am","10:00am-11:00am","11:00am-11:10am","11:10am-12:10pm",
+        	"12:10pm-1:10pm","1:10pm-1:50pm","1:55pm-2:50pm","2:50pm-3:45pm","3:45pm-4:40pm"
+        	];
+        }
+
+    	// Define staff_timetable object INSIDE the function
+    	const staff_timetable = {
+        department: department,
+        hours_per_day: hours_per_day,
+        time_slot: time_slot
+    	};
+
+
+     	console.log("Sending staff data:", staff_timetable);
+
+    	fetch("http://127.0.0.1:5000/staff_timetable", {
+        	method: "POST",
+        	headers: { "Content-Type": "application/json" },
+        	body: JSON.stringify(staff_timetable)
+    	})
+    		.then(response => response.json())
+    		.then(data => {
+        	if (data.error) {
+           		 alert(" Error: " + data.error);
+        	} else {
+            	alert(" " + data.message);
+        	}
+    	})
+    	.catch(error => console.error("Error:", error));
+	}
+
+</script>
 </html>
