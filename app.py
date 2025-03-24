@@ -1,6 +1,11 @@
 from flask import Flask, render_template, redirect, flash, session, url_for, request, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
-import sqlite3, re
+import sqlite3
+import re
+import random
+
+import pandas as pd
+
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
@@ -287,10 +292,11 @@ def save_staff():
         # Convert list to comma-separated string
         subject_names_str = ",".join(subject_names)
         subject_types_str = ",".join(subject_types)
-        subject_hours_str= ",".join(subject_hours)
+        subject_hours_str = ",".join(subject_hours)
 
         # Ensure all required fields are provided
-        if not all([staff_name, department, semester, year, no_of_subjects, subject_names_str, subject_types_str,subject_hours_str]):
+        if not all([staff_name, department, semester, year, no_of_subjects, subject_names_str, subject_types_str,
+                    subject_hours_str]):
             return jsonify({"error": "All fields are required"}), 400
 
         # Connect to SQLite database
@@ -320,7 +326,7 @@ def save_staff():
                SELECT * FROM {table_name}
                WHERE staff_name=? AND department=? AND semester=? AND year=? 
                  AND subject_names= ? AND subject_types=? AND hours_per_week=?
-           """, (staff_name, department, semester, year, subject_names_str, subject_types_str,subject_hours_str))
+           """, (staff_name, department, semester, year, subject_names_str, subject_types_str, subject_hours_str))
 
         existing_record = cursor.fetchone()
 
@@ -332,7 +338,8 @@ def save_staff():
         cursor.execute(f"""
             INSERT INTO {table_name} (staff_name, department, semester, year, no_of_subjects, subject_names, 
             subject_types,hours_per_week) VALUES (?, ?, ?, ?, ?, ?, ?,?)
-             """, (staff_name, department, semester, year, no_of_subjects, subject_names_str, subject_types_str,subject_hours_str))
+             """, (staff_name, department, semester, year, no_of_subjects, subject_names_str,
+                   subject_types_str, subject_hours_str))
 
         # Commit and close connection
         conn.commit()
@@ -409,6 +416,101 @@ def save_classroom():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+# API to  generate staff timetable
+@app.route("/generate_staff_timetable", methods=["POST"])
+def generate_staff_timetable():
+    try:
+        # Receive JSON data from request
+        data = request.json
+        department = data.get("department")
+        department = re.sub(r"[^a-zA-Z0-9_]", "_", department)  # Replace special characters with "_"
+        hours_per_day = data.get("hours_per_day")
+        time_slots = data.get("time_slot",[])
+
+        # Check for missing fields
+        if not department or not hours_per_day or not time_slots:
+            return jsonify({"error": "Missing required fields"}), 400
+
+        # Connect to SQLite database
+        conn = sqlite3.connect("db_AcademicPlannerAdvisor.db")
+        cursor = conn.cursor()
+
+        # Fetch staff data from the relevant table
+        table_name = f"staff_{department}"
+        cursor.execute(
+            f"SELECT staff_name, semester, year, no_subject, subject_names, subject_types, hours_per_week FROM {table_name}")
+        staff_data = cursor.fetchall()
+        conn.close()
+
+        if not staff_data:
+            return jsonify({"error": "No data found for the selected department"}), 404
+
+        # Process fetched data
+        days=["MON", "TUE", "WED", "THU", "FRI"]
+        periods = hours_per_day
+        timetable = generate_timetable(staff_data,days,time_slots,periods)
+        save_timetable_to_db(cursor, department, timetable)
+
+        return jsonify({"message": "Timetable generated successfully", "timetable": timetable})
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+def generate_timetable( staff_data , days,  time_slots, periods):
+    """Generate staff timetable using a genetic algorithm approach."""
+    timetable = {}
+
+    for staff in staff_data:
+        staff_name, _, _, _, subjects, _, hours_per_week = staff
+        subjects_list = subjects.split(",")
+        random.shuffle(subjects_list)  # Shuffle for random allocation
+
+        timetable[staff_name] = {day: ["-" for _ in range(periods)] for day in days}
+
+        subject_index = 0
+        for day in days:
+            for period in range(periods):
+                if subject_index < len(subjects_list):
+                    timetable[staff_name][day][period] = subjects_list[subject_index]
+                    subject_index += 1
+
+    return timetable
+
+
+def save_timetable_to_db(department, timetable):
+    """Store generated timetable into SQLite database."""
+    conn = sqlite3.connect("db_AcademicPlannerAdvisor.db")
+    cursor = conn.cursor()
+
+    table_name = f"timetable_{department}"
+
+    # Create timetable table if not exists
+    cursor.execute(f"""
+         CREATE TABLE IF NOT EXISTS {table_name} (
+             id INTEGER PRIMARY KEY AUTOINCREMENT,
+             staff_name TEXT,
+             day TEXT,
+             period INTEGER,
+             subject TEXT
+         )
+     """)
+
+    # Clear existing timetable for department
+    cursor.execute(f"DELETE FROM {table_name}")
+
+    # Insert new timetable
+    for staff_name, schedule in timetable.items():
+        for day, periods in schedule.items():
+            for period_index, subject in enumerate(periods):
+                cursor.execute(f"""
+                     INSERT INTO {table_name} (staff_name, day, period, subject) 
+                     VALUES (?, ?, ?, ?)
+                 """, (staff_name, day, period_index + 1, subject))
+
+    conn.commit()  # Save changes to the database
+    conn.close()  # Close the database connection
 
 
 if __name__ == '__main__':
