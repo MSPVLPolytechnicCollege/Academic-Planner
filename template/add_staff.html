@@ -5,8 +5,6 @@
     <style>
         body {background: url('static/bg_page.jpg');background-size: cover; font-family: Arial, sans-serif; margin-right: 70px; margin-top:50px}
         .container { max-width: 700px; margin: auto; }
-        .delete-btn { background-color: red; color: white; width: 100%; cursor: pointer; }
-        .save-btn { background-color: #04AA6D; color: white; border: none; width: 100%; padding: 10px 15px; cursor: pointer; margin-top: 20px; display: block; }
         input[type=text],input[type=number],select {
             width: 50%;
             padding: 12px 20px;
@@ -34,12 +32,12 @@
 	<div class="container">
 		<h2>Add Staff Members</h2>
 		<label for="staff_name" >Staff Name :</label>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-		<input type="text" id="staff_name" name="staff_name" required placeholder="Enter the staff name"><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+		<input type="text" id="staff_name"  placeholder="Enter the staff name" required><br>
 
 
 	    <label for="department">Department:</label>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
         <select id="department">
             <option value="none" selected disabled>None</option>
             <option value="Basic_Engg_CE&amp;IT">Basic CE and IT</option>
@@ -72,7 +70,8 @@
         <br>
 
         <label for="year">Year:</label>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
         <select id="year">
             <option value="none" selected disabled>None</option>
             <option value="Year I">Year I</option>
@@ -85,7 +84,7 @@
 
         <div id="subject_fields"></div>
 
-        <button type="submit" onclick="saveStaffDetails()">Save Staff Details</button>
+        <button type="submit" onclick="saveStaffDetails()" >Save Staff Details</button>
     </div>
     <script>
     function generateSubjectFields() {
@@ -99,16 +98,27 @@
 
                 subjectDiv.innerHTML += `
                 <label>Subject ${i} Name:</label>
-               &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input type="text" id="subject_${i}" placeholder="Enter Subject ${i}" required><br>
+               &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input type="text" id="subject_${i}" placeholder="Enter Subject ${i}" required><br>
 
                 <label>Subject ${i} Type:</label>
-                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                 <select id="subject_type_${i}">
                     <option value="none" selected disabled>None</option>
                     <option value="Theory">Theory</option>
                     <option value="Practical">Practical</option>
                     <option value="Practicum">Practicum</option>
                     <option value="PD/PT">PD/PT</option>
+                </select><br>
+
+                <label>No.Of.Hours per Week:</label>
+                <select id="no_of_hours_${i}">
+                    <option value="none" selected disabled>None</option>
+                    <option value="1 period">1</option>
+                    <option value="2 periods">2</option>
+                    <option value="3 periods">3</option>
+                    <option value="4 periods">4</option>
+                    <option value="5 periods">5</option>
+                    <option value="6 periods">6</option>
                 </select><br>
                 <div id="batch_no_${i}"></div><br>
             `;
@@ -130,7 +140,7 @@
         {
            extraOptionsDiv.innerHTML = `
            <label>Batch No:</label>
-           &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+           &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
             <select id="batch_select_${index}">
               <option value="none" selected disabled>None</option>
               <option value="batch_I">Batch I</option>
@@ -145,41 +155,58 @@
         }
    }
 
-    function saveStaffDetails()
-    {
-        const staff_name = document.getElementById("staff_name").value.trim();
-        const department = document.getElementById("department").value;
-        const semester = document.getElementById("semester").value;
-        const year = document.getElementById("year").value;
-        const no_of_subjects = parseInt(document.getElementById("no_of_subjects").value);
+function saveStaffDetails() {
+    const staff_name = document.getElementById("staff_name").value;
+    const department = document.getElementById("department").value;
+    const semester = document.getElementById("semester").value;
+    const year = document.getElementById("year").value;
+    const no_of_subjects = parseInt(document.getElementById("no_of_subjects").value);
 
-        let subjectNames = [];
-        let subjectTypes = [];
 
-        for (let i = 1; i <= no_of_subjects; i++)
-        {
-            let subject_name = document.getElementById(`subject_${i}`).value.trim();
-            let subject_type = document.getElementById(`subject_type_${i}`).value;
-            let batch_no = null;
+    if (!staff_name) {
+        alert("please enter Staff Name.");
+        return;
+    }
+    if (!department || !semester || !year || isNaN(no_of_subjects)) {
+        alert("Please fill in all fields.");
+        return;
+    }
 
-            // Ensure batch dropdown exists before retrieving its value
-            batchElement = document.getElementById(`batch_select_${i}`);
-            if ((subject_type === "Practical" || subject_type === "Practicum") && batchElement)
-            {
-                batch_no = batchElement.value;
-                if (batch_no && batch_no !== "none")
-                {  //Ensure a valid batch is selected
-                    subject_type = `${subject_type} - ${batch_no}`;  // Append batch to subject type
-                }
-            }
+    let subjectNames = [];
+    let subjectTypes = [];
+    let subjectHours = [];
 
-             if (!subject_name) {
-            alert(`️ Please enter Subject ${i} Name.`);
+    for (let i = 1; i <= no_of_subjects; i++) {
+        let subject_name = document.getElementById(`subject_${i}`).value.trim();
+        let subject_type = document.getElementById(`subject_type_${i}`).value;
+        let subject_hours = document.getElementById(`no_of_hours_${i}`).value;
+        let batch_no = null;
+
+        if (!subject_name) {
+            alert(` Please enter Subject ${i} Name.`);
             return;
+        }
+        if (!subject_type || subject_type === "none") {
+            alert(` Please select a Subject ${i} Type.`);
+            return;
+        }
+        if (!subject_hours || subject_hours === "none") {
+            alert(`Please select the number of hours for Subject ${i}.`);
+            return;
+        }
+
+        // Ensure batch dropdown exists before retrieving its value
+        let batchElement = document.getElementById(`batch_select_${i}`);
+        if ((subject_type === "Practical" || subject_type === "Practicum") && batchElement) {
+            batch_no = batchElement.value;
+            if (batch_no && batch_no !== "none") {
+                subject_type = `${subject_type} - ${batch_no}`; // Append batch to subject type
+            }
         }
 
         subjectNames.push(subject_name);
         subjectTypes.push(subject_type);
+        subjectHours.push(subject_hours);
     }
 
     const staffData = {
@@ -188,8 +215,9 @@
         semester: semester,
         year: year,
         no_of_subjects: no_of_subjects,
-        subject_names: subjectNames,  //  Array
-        subject_types: subjectTypes  // Array
+        subject_names: subjectNames,
+        subject_types: subjectTypes,
+        subject_hours: subjectHours
     };
 
     console.log("Sending staff data:", staffData);
@@ -204,15 +232,16 @@
         if (data.error) {
             alert(" Error: " + data.error);
         } else {
-            alert("" + data.message);
+            alert(" " + data.message);
         }
     })
     .catch(error => console.error("Error:", error));
 }
-
 
     </script>
 
 
 </body>
 </html>
+
+
