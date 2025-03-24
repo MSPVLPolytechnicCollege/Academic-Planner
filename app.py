@@ -229,7 +229,7 @@ def save_subjects():
                                WHERE subject_code=? AND department=? AND semester=? AND year=? 
                                  AND subject_name= ? AND subject_type=? AND no_of_hours=?
                                """, (subject["subject_code"], subject["department"], subject["semester"],
-                                     subject["year"], subject["subject_name"], subject["subject_type"], 
+                                     subject["year"], subject["subject_name"], subject["subject_type"],
                                      subject["no_of_hours"]))
 
                 existing_record = cursor.fetchone()
@@ -275,9 +275,10 @@ def save_staff():
 
         subject_names = data.get("subject_names", [])  # Expecting a list
         subject_types = data.get("subject_types", [])  # Expecting a list
+        subject_hours = data.get("subject_hours", [])
 
         # Ensure all required fields are provided
-        if not (staff_name and department and semester and year and no_of_subjects):
+        if not (staff_name and department and semester and year and no_of_subjects and subject_hours):
             return jsonify({"error": "All fields are required"}), 400
 
         if not subject_names or not all(subject_names) or not subject_types or not all(subject_types):
@@ -286,9 +287,10 @@ def save_staff():
         # Convert list to comma-separated string
         subject_names_str = ",".join(subject_names)
         subject_types_str = ",".join(subject_types)
+        subject_hours_str= ",".join(subject_hours)
 
         # Ensure all required fields are provided
-        if not all([staff_name, department, semester, year, no_of_subjects, subject_names_str, subject_types_str]):
+        if not all([staff_name, department, semester, year, no_of_subjects, subject_names_str, subject_types_str,subject_hours_str]):
             return jsonify({"error": "All fields are required"}), 400
 
         # Connect to SQLite database
@@ -308,7 +310,8 @@ def save_staff():
                 year TEXT NOT NULL,
                 no_of_subjects INTEGER NOT NULL,
                 subject_names TEXT NOT NULL,   
-                subject_types TEXT NOT NULL 
+                subject_types TEXT NOT NULL,
+                hours_per_week TEXT NOT NULL
             )
         """)
 
@@ -316,8 +319,8 @@ def save_staff():
         cursor.execute(f"""
                SELECT * FROM {table_name}
                WHERE staff_name=? AND department=? AND semester=? AND year=? 
-                 AND subject_names= ? AND subject_types=?
-           """, (staff_name, department, semester, year, subject_names_str, subject_types_str))
+                 AND subject_names= ? AND subject_types=? AND hours_per_week=?
+           """, (staff_name, department, semester, year, subject_names_str, subject_types_str,subject_hours_str))
 
         existing_record = cursor.fetchone()
 
@@ -328,8 +331,8 @@ def save_staff():
         # Insert staff details into the table
         cursor.execute(f"""
             INSERT INTO {table_name} (staff_name, department, semester, year, no_of_subjects, subject_names, 
-            subject_types) VALUES (?, ?, ?, ?, ?, ?, ?)
-             """, (staff_name, department, semester, year, no_of_subjects, subject_names_str, subject_types_str))
+            subject_types,hours_per_week) VALUES (?, ?, ?, ?, ?, ?, ?,?)
+             """, (staff_name, department, semester, year, no_of_subjects, subject_names_str, subject_types_str,subject_hours_str))
 
         # Commit and close connection
         conn.commit()
@@ -357,7 +360,7 @@ def save_classroom():
         lab_names = data.get("lab_names", [])  # Comma-separated string
 
         # Ensure all required fields are provided
-        if (not department or no_of_classroom <= 0 or not classroom_names or not all(classroom_names) 
+        if (not department or no_of_classroom <= 0 or not classroom_names or not all(classroom_names)
                 or no_of_lab <= 0 or not lab_names or not all(lab_names)):
             return jsonify({"error": "All fields are required"}), 400
 
@@ -410,4 +413,3 @@ def save_classroom():
 
 if __name__ == '__main__':
     app.run(debug=True)
-    
