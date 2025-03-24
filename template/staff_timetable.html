@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Add Staff Details</title>
+    <style>
+        body {background: url('static/bg_page.jpg');background-size: cover; font-family: Arial, sans-serif; margin-right: 70px; margin-top:50px}
+        .container { max-width: 700px; margin: auto; }
+        input[type=text],input[type=number],select {
+            width: 50%;
+            padding: 12px 20px;
+            margin: 8px 0;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #04AA6D;
+            color: white;
+            padding: 12px 20px;
+            margin: 8px 0;
+            border: none;
+            cursor: pointer;
+            width: 73%;
+        }
+</style>
+<body>
+	<div class="container">
+		<h2>GENERATE STAFF TIMETABLE</h2>
+		<label for="department">Department:</label>
+       		 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        	<select id="department">
+            		<option value="none" selected disabled>None</option>
+           	 	<option value="Basic_Engg_CE&amp;IT">Basic CE and IT</option>
+            		<option value="Basic_Engg_ECE">Basic ECE</option>
+            		<option value="Basic_Engg_EEE">Basic EEE</option>
+            		<option value="Basic_Engg_CIVIL">Basic CIVIL</option>
+            		<option value="Basic_Engg_MECH">Basic MECH</option>
+            		<option value="Basic_Engg_AUTO">Basic AUTO</option>
+            		<option value="CE">Computer Engineering (CE)</option>
+            		<option value="IT">Information Technology(IT)</option>
+            		<option value="ECE">Electronics & Communication Engineering (ECE)</option>
+           		<option value="EEE">Electrical & Electronics Engineering (EEE)</option>
+            		<option value="MECH">Mechanical Engineering (MECH)</option>
+            		<option value="AUTO">Automobile Engineering (AUTO)</option>
+            		<option value="CIVIL">Civil Engineering (CIVIL)</option>
+        	</select><br>
+		<label for="HoursPerDay">Semester:</label>
+        	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+		<select id="HoursPerDay">
+			<option value="none" selected disabled>None</option>
+			<option value="7">7</option>
+			<option value="8">8</option>
+		</select><br>
+		<button onclick=SaveData() id="staff_timetable">GENERATE STAFF TIMETABLE</button>
+</body>
+<script>
+
+     function SaveData()
+    {
+        const department = document.getElementById("department").value;
+        const hours_per_day=parseInt(document.getElementById("HoursPerDay").value);
+
+        if(HoursPerDay == 8)
+        {
+        	time_solt =[9:00am-9:50am,9:50am-10:40am,10:40am-10:50am,10:50am-11:30am,11:30am-12:30pm,12:30pm-1:10pm,1:10pm-1:
+</html>
