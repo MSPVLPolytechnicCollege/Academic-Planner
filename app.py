@@ -3,7 +3,6 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import sqlite3
 import re
 import random
-
 import pandas as pd
 
 
@@ -419,18 +418,20 @@ def save_classroom():
 
 
 # API to  generate staff timetable
-@app.route("/generate_staff_timetable", methods=["POST"])
-def generate_staff_timetable():
+@app.route("/timetable_staff", methods=["POST"])
+def timetable_staff():
     try:
         # Receive JSON data from request
         data = request.json
         department = data.get("department")
         department = re.sub(r"[^a-zA-Z0-9_]", "_", department)  # Replace special characters with "_"
-        hours_per_day = data.get("hours_per_day")
+        hours_per_day = int(data.get("hours_per_day",0))
         time_slots = data.get("time_slot",[])
+        students_per_batch = int(data.get("students_per_batch", 0))
+        total_students = int(data.get("total_students", 0))
 
         # Check for missing fields
-        if not department or not hours_per_day or not time_slots:
+        if not department or not hours_per_day or not time_slots or not students_per_batch:
             return jsonify({"error": "Missing required fields"}), 400
 
         # Connect to SQLite database
@@ -440,7 +441,7 @@ def generate_staff_timetable():
         # Fetch staff data from the relevant table
         table_name = f"staff_{department}"
         cursor.execute(
-            f"SELECT staff_name, semester, year, no_subject, subject_names, subject_types, hours_per_week FROM {table_name}")
+            f"SELECT staff_name, semester, year, no_of_subjects, subject_names, subject_types, hours_per_week FROM {table_name}")
         staff_data = cursor.fetchall()
         conn.close()
 
@@ -450,68 +451,156 @@ def generate_staff_timetable():
         # Process fetched data
         days=["MON", "TUE", "WED", "THU", "FRI"]
         periods = hours_per_day
-        timetable = generate_timetable(staff_data,days,time_slots,periods)
-        save_timetable_to_db(cursor, department, timetable)
+        timetable = generate_timetable(staff_data,days,time_slots, periods, total_students,students_per_batch)
+        save_timetable_to_db(department,timetable,time_slots)
 
         return jsonify({"message": "Timetable generated successfully", "timetable": timetable})
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-def generate_timetable( staff_data , days,  time_slots, periods):
-    """Generate staff timetable using a genetic algorithm approach."""
-    timetable = {}
+def generate_timetable(staff_data, days, time_slots, periods, total_students, students_per_batch):
+    """Generate staff timetable with continuous lab allocation but non-continuous theory allocation."""
+    timetable = {staff[0]: {day: ["-" for _ in range(periods)] for day in days} for staff in staff_data}
+    global_schedule = {day: ["-" for _ in range(periods)] for day in days}  # Global check for all periods
 
     for staff in staff_data:
-        staff_name, _, _, _, subjects, _, hours_per_week = staff
+        staff_name, _, _, _, subjects, subject_types, hours_per_week = staff
         subjects_list = subjects.split(",")
-        random.shuffle(subjects_list)  # Shuffle for random allocation
+        subject_types_list = subject_types.split(",")
+        hours_per_subject = extract_hours(hours_per_week)
 
-        timetable[staff_name] = {day: ["-" for _ in range(periods)] for day in days}
+        subject_info = list(zip(subjects_list, subject_types_list, hours_per_subject))
+        random.shuffle(subject_info)  # Shuffle subjects for randomness
 
-        subject_index = 0
-        for day in days:
-            for period in range(periods):
-                if subject_index < len(subjects_list):
-                    timetable[staff_name][day][period] = subjects_list[subject_index]
-                    subject_index += 1
+        for subject, subject_type, total_hours in subject_info:
+            available_slots = [(d, p) for d in days for p in range(periods)]
+            random.shuffle(available_slots)
+
+            if "practical" in subject_type.lower() or "practicum" in subject_type.lower():
+                # Allocate labs continuously with batch division if needed
+                num_batches = (total_students // students_per_batch) if total_students > students_per_batch else 1
+                batch_subjects = [(f"{subject} - Batch {i + 1} (Lab)", total_hours) for i in range(num_batches)]
+
+                for subject_variant, hours in batch_subjects:
+                    split_hours = determine_split(hours, periods)  # (4,2) or (2,2,2)
+
+                    for continuous_hours in split_hours:
+                        assigned_hours = 0
+                        for day, period in available_slots:
+                            # Ensure the required number of continuous slots are free
+                            if (
+                                assigned_hours < continuous_hours and
+                                period + continuous_hours <= periods and
+                                all(timetable[staff_name][day][period + i] == "-" for i in range(continuous_hours)) and
+                                all(global_schedule[day][period + i] == "-" for i in range(continuous_hours))  # Global check for double booking
+                            ):
+                                for i in range(continuous_hours):
+                                    timetable[staff_name][day][period + i] = subject_variant
+                                    global_schedule[day][period + i] = subject_variant  # Mark global schedule as booked
+                                assigned_hours = continuous_hours
+                                break  # Move to the next allocation
+
+            else:
+                # Allocate theory subjects non-continuously (spread out across different time slots)
+                assigned_hours = 0
+                # Start with ensuring theory subjects are not back-to-back
+                theory_slots = [(d, p) for d in days for p in range(periods)]
+                random.shuffle(theory_slots)
+
+                for day, period in theory_slots:
+                    if assigned_hours < total_hours and timetable[staff_name][day][period] == "-" and global_schedule[day][period] == "-":
+                        timetable[staff_name][day][period] = f"{subject} (Theory)"
+                        global_schedule[day][period] = f"{subject} (Theory)"  # Mark global schedule as booked
+                        assigned_hours += 1
+                        # Prevent theory subjects from being back-to-back
+                        theory_slots = [(d, p) for d, p in theory_slots if d != day or p != period + 1]
 
     return timetable
 
+def determine_split(total_hours, periods):
+    """Dynamically split lab sessions for continuous allocation."""
+    if total_hours == 6:
+        return random.choice([[4, 2], [2, 2, 2]])  # (4,2) or (2,2,2)
+    elif total_hours == 7:
+        return random.choice([[3, 3], [2, 2, 2]])  # (3,3) or (2,2,2)
+    elif total_hours == 8:
+        return [4, 4]  # Split into two equal parts
+    elif total_hours == 9:
+        return [3, 3, 3]  # Split into three equal parts
+    else:
+        return [total_hours]  # Default, no split
 
-def save_timetable_to_db(department, timetable):
-    """Store generated timetable into SQLite database."""
+def extract_hours(hours_str):
+    """Extract individual hours as a list of integers."""
+    return list(map(int, re.findall(r'\d+', hours_str)))
+
+def save_timetable_to_db(department, timetable, time_slots):
+    """Store the generated timetable into SQLite database."""
     conn = sqlite3.connect("db_AcademicPlannerAdvisor.db")
     cursor = conn.cursor()
 
-    table_name = f"timetable_{department}"
+    table_name = f"staff_timetable_{department}"
 
-    # Create timetable table if not exists
     cursor.execute(f"""
-         CREATE TABLE IF NOT EXISTS {table_name} (
-             id INTEGER PRIMARY KEY AUTOINCREMENT,
-             staff_name TEXT,
-             day TEXT,
-             period INTEGER,
-             subject TEXT
-         )
-     """)
+        CREATE TABLE IF NOT EXISTS {table_name} (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            staff_name TEXT,
+            day TEXT,
+            period INTEGER,
+            subject TEXT
+        )
+    """)
 
-    # Clear existing timetable for department
     cursor.execute(f"DELETE FROM {table_name}")
 
-    # Insert new timetable
     for staff_name, schedule in timetable.items():
         for day, periods in schedule.items():
             for period_index, subject in enumerate(periods):
                 cursor.execute(f"""
-                     INSERT INTO {table_name} (staff_name, day, period, subject) 
-                     VALUES (?, ?, ?, ?)
-                 """, (staff_name, day, period_index + 1, subject))
+                    INSERT INTO {table_name} (staff_name, day, period, subject) 
+                    VALUES (?, ?, ?, ?)
+                """, (staff_name, day, period_index + 1, subject))
 
-    conn.commit()  # Save changes to the database
-    conn.close()  # Close the database connection
+    conn.commit()
+    conn.close()
 
+def fetch_staff_timetable_from_db(department):
+    """Fetch the timetable from the database."""
+    conn = sqlite3.connect("db_AcademicPlannerAdvisor.db")
+    query = f"SELECT staff_name, day, period, subject FROM staff_timetable_{department} ORDER BY staff_name, day, period"
+    df = pd.read_sql_query(query, conn)
+    conn.close()
+    return df
+
+def format_staff_timetable(df):
+    """Format the timetable into a structure for display."""
+    timetable = {}
+    for _, row in df.iterrows():
+        staff = row["staff_name"]
+        day = row["day"]
+        period = row["period"]
+        subject = row["subject"]
+
+        if staff not in timetable:
+            timetable[staff] = {d: ["-" for _ in range(8)] for d in ["MON", "TUE", "WED", "THU", "FRI"]}
+
+        timetable[staff][day][period - 1] = subject
+    return timetable
+
+@app.route('/timetable/<department>')
+def display_timetable(department):
+    try:
+        df = fetch_staff_timetable_from_db(department)
+
+        if df.empty:
+            return "No timetable found for this department.", 404  # Handle empty timetable case
+
+        timetable = format_staff_timetable(df)
+        return render_template('staff_timetable.html', timetable=timetable)
+
+    except Exception as e:
+        return f"Error loading timetable: {str(e)}", 500
 
 if __name__ == '__main__':
     app.run(debug=True)
