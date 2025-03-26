@@ -459,10 +459,22 @@ def timetable_staff():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
 def generate_timetable(staff_data, days, time_slots, periods, total_students, students_per_batch):
     """Generate staff timetable with continuous lab allocation but non-continuous theory allocation."""
     timetable = {staff[0]: {day: ["-" for _ in range(periods)] for day in days} for staff in staff_data}
     global_schedule = {day: ["-" for _ in range(periods)] for day in days}  # Global check for all periods
+
+    lab_pairs = {}
+    for staff in staff_data:
+        for subject, subject_type in zip(staff[4].split(","), staff[5].split(",")):
+            if "practical" in subject_type.lower() or "practicum" in subject_type.lower():
+                lab_pairs[subject.lower()] = None
+
+    lab_list = list(lab_pairs.keys())
+    for i in range(0, len(lab_list) - 1, 2):
+        lab_pairs[lab_list[i]] = lab_list[i + 1]
+        lab_pairs[lab_list[i + 1]] = lab_list[i]
 
     for staff in staff_data:
         staff_name, _, _, _, subjects, subject_types, hours_per_week = staff
@@ -474,62 +486,80 @@ def generate_timetable(staff_data, days, time_slots, periods, total_students, st
         random.shuffle(subject_info)  # Shuffle subjects for randomness
 
         for subject, subject_type, total_hours in subject_info:
+            if "pd/pt" in subject.lower():
+                subject_display = "(PD/PT)"
+            elif "practical" in subject_type.lower() or "practicum" in subject_type.lower():
+                subject_display = "(Lab)"
+            else:
+                subject_display = "(Theory)"
+
             available_slots = [(d, p) for d in days for p in range(periods)]
             random.shuffle(available_slots)
 
             if "practical" in subject_type.lower() or "practicum" in subject_type.lower():
-                # Allocate labs continuously with batch division if needed
-                num_batches = (total_students // students_per_batch) if total_students > students_per_batch else 1
-                batch_subjects = [(f"{subject} - Batch {i + 1} (Lab)", total_hours) for i in range(num_batches)]
+                paired_subject = lab_pairs.get(subject.lower(), None)
+                split_hours = determine_split(total_hours)
 
-                for subject_variant, hours in batch_subjects:
-                    split_hours = determine_split(hours, periods)  # (4,2) or (2,2,2)
-
-                    for continuous_hours in split_hours:
+                if paired_subject:
+                    paired_staff = next((s for s in staff_data if paired_subject in s[4]), None)
+                    if paired_staff:
+                        paired_staff_name = paired_staff[0]
                         assigned_hours = 0
-                        for day, period in available_slots:
-                            # Ensure the required number of continuous slots are free
-                            if (
-                                assigned_hours < continuous_hours and
-                                period + continuous_hours <= periods and
-                                all(timetable[staff_name][day][period + i] == "-" for i in range(continuous_hours)) and
-                                all(global_schedule[day][period + i] == "-" for i in range(continuous_hours))  # Global check for double booking
-                            ):
-                                for i in range(continuous_hours):
-                                    timetable[staff_name][day][period + i] = subject_variant
-                                    global_schedule[day][period + i] = subject_variant  # Mark global schedule as booked
-                                assigned_hours = continuous_hours
-                                break  # Move to the next allocation
-
+                        for continuous_hours in split_hours:
+                            for day in days:
+                                for period in range(periods - continuous_hours + 1):
+                                    if all(timetable[staff_name][day][period + i] == "-" for i in
+                                           range(continuous_hours)) and \
+                                            all(timetable[paired_staff_name][day][period + i] == "-" for i in
+                                                range(continuous_hours)):
+                                        for i in range(continuous_hours):
+                                            timetable[staff_name][day][
+                                                period + i] = f"{subject} - Batch 1 {subject_display}"
+                                            timetable[paired_staff_name][day][
+                                                period + i] = f"{paired_subject} - Batch 2 {subject_display}"
+                                        assigned_hours += continuous_hours
+                                        if assigned_hours >= total_hours:
+                                            break
+                                if assigned_hours >= total_hours:
+                                    break
+                else:
+                    assigned_hours = 0
+                    for continuous_hours in split_hours:
+                        for day in days:
+                            for period in range(periods - continuous_hours + 1):
+                                if assigned_hours < total_hours and all(
+                                        timetable[staff_name][day][period + i] == "-" for i in range(continuous_hours)):
+                                    for i in range(continuous_hours):
+                                        timetable[staff_name][day][
+                                            period + i] = f"{subject} - Batch 1 {subject_display}"
+                                    assigned_hours += continuous_hours
+                                    if assigned_hours >= total_hours:
+                                        break
             else:
-                # Allocate theory subjects non-continuously (spread out across different time slots)
                 assigned_hours = 0
-                # Start with ensuring theory subjects are not back-to-back
-                theory_slots = [(d, p) for d in days for p in range(periods)]
-                random.shuffle(theory_slots)
-
-                for day, period in theory_slots:
-                    if assigned_hours < total_hours and timetable[staff_name][day][period] == "-" and global_schedule[day][period] == "-":
-                        timetable[staff_name][day][period] = f"{subject} (Theory)"
-                        global_schedule[day][period] = f"{subject} (Theory)"  # Mark global schedule as booked
+                for day, period in available_slots:
+                    if assigned_hours < total_hours and timetable[staff_name][day][period] == "-":
+                        timetable[staff_name][day][period] = f"{subject} {subject_display}"
                         assigned_hours += 1
-                        # Prevent theory subjects from being back-to-back
-                        theory_slots = [(d, p) for d, p in theory_slots if d != day or p != period + 1]
+                        if assigned_hours >= total_hours:
+                            break
 
     return timetable
 
-def determine_split(total_hours, periods):
+
+def determine_split(total_hours):
     """Dynamically split lab sessions for continuous allocation."""
     if total_hours == 6:
-        return random.choice([[4, 2], [2, 2, 2]])  # (4,2) or (2,2,2)
-    elif total_hours == 7:
-        return random.choice([[3, 3], [2, 2, 2]])  # (3,3) or (2,2,2)
+        return [3, 3]  # Ensuring labs are split into equal parts
+    elif total_hours == 4:
+        return [2, 2]  # Splitting into two equal parts
     elif total_hours == 8:
         return [4, 4]  # Split into two equal parts
     elif total_hours == 9:
         return [3, 3, 3]  # Split into three equal parts
     else:
         return [total_hours]  # Default, no split
+
 
 def extract_hours(hours_str):
     """Extract individual hours as a list of integers."""
