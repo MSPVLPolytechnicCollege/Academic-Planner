@@ -9,13 +9,13 @@
   <form class="container_update" method="POST" action="/update_password">
      <label><b><h2>Update Password</h2></b></label><br>
     <label for="uname"><b>Username</b></label>
-    <input type="text" placeholder="Enter Username" name="uname" required>
-    <label for="passwd_old"><b>Old Password</b></label>
-    <input type="password" placeholder="Enter the old Password" name="passwd_old" required>
+    <input type="text" placeholder="Enter Username" name="uname" id="uname" required>
+    <label for="email"><b>Email</b></label>
+    <input type="text" placeholder="Enter your email" name="email"  id="email" required>
         <label for="passwd_new"><b>New Password</b></label>
-    <input type="password" placeholder="Enter a new Password" name="passwd_new" required>
+    <input type="password" placeholder="Enter a new Password" name="passwd_new"id="passwd_new"required>
         <label for="passwd_confirm"><b>Confirm Password</b></label>
-    <input type="password" placeholder="Confirm your Password" name="passwd_confirm" required>   
+    <input type="password" placeholder="Confirm your Password" name="passwd_confirm" id="passwd_confirm" required>
     <!-- Display error messages -->
     {% with messages = get_flashed_messages(with_categories=True) %}
         {% if messages %}
