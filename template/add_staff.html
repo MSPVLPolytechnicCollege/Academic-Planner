@@ -88,72 +88,105 @@
     </div>
     <script>
     function generateSubjectFields() {
-        const count = document.getElementById("no_of_subjects").value;
-        const container = document.getElementById("subject_fields");
-        container.innerHTML = ""; // Clear previous fields
+    const count = document.getElementById("no_of_subjects").value;
+    const container = document.getElementById("subject_fields");
+    container.innerHTML = ""; // Clear previous fields
 
-        for (let i = 1; i <= count; i++)
-        {
-                 const subjectDiv = document.createElement("div");
+    for (let i = 1; i <= count; i++) {
+        const subjectDiv = document.createElement("div");
+        subjectDiv.innerHTML += `
+            <label>Subject ${i} Name:</label>
+            <input type="text" id="subject_${i}" placeholder="Enter Subject ${i}" required><br>
 
-                subjectDiv.innerHTML += `
-                <label>Subject ${i} Name:</label>
-               &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input type="text" id="subject_${i}" placeholder="Enter Subject ${i}" required><br>
-
-                <label>Subject ${i} Type:</label>
-                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-                <select id="subject_type_${i}">
-                    <option value="none" selected disabled>None</option>
-                    <option value="Theory">Theory</option>
-                    <option value="Practical">Practical</option>
-                    <option value="Practicum">Practicum</option>
-                    <option value="PD/PT">PD/PT</option>
-                </select><br>
-
-                <label>No.Of.Hours per Week:</label>
-                <select id="no_of_hours_${i}">
-                    <option value="none" selected disabled>None</option>
-                    <option value="1 period">1</option>
-                    <option value="2 periods">2</option>
-                    <option value="3 periods">3</option>
-                    <option value="4 periods">4</option>
-                    <option value="5 periods">5</option>
-                    <option value="6 periods">6</option>
-                </select><br>
-                <div id="batch_no_${i}"></div><br>
-            `;
-             container.appendChild(subjectDiv); // Append subject fields to the container
-
-            //  Attach Event Listener for `onchange` AFTER element is added to the DOM
-            document.getElementById(`subject_type_${i}`).addEventListener("change", function ()
-            {
-            generateBatchDropdown(i);
-            });
-        }
-    }
-   function generateBatchDropdown(index)
-   {
-        const subjectType = document.getElementById(`subject_type_${index}`).value;
-        const extraOptionsDiv = document.getElementById(`batch_no_${index}`);
-
-        if (subjectType === "Practical" || subjectType === "Practicum")
-        {
-           extraOptionsDiv.innerHTML = `
-           <label>Batch No:</label>
-           &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-            <select id="batch_select_${index}">
-              <option value="none" selected disabled>None</option>
-              <option value="batch_I">Batch I</option>
-              <option value="batch_II">Batch II</option>
-               <option value="batch_I_II">Batch I and Batch II</option>
+            <label>Subject ${i} Type:</label>
+            <select id="subject_type_${i}">
+                <option value="none" selected disabled>None</option>
+                <option value="Theory">Theory</option>
+                <option value="Practical">Practical</option>
+                <option value="Practicum">Practicum</option>
+                <option value="PD/PT">PD/PT</option>
             </select><br>
-            `;
-        }
-        else
-        {
-           extraOptionsDiv.innerHTML = ""; // Clear the dropdown if another type is selected
-        }
-   }
+
+            <label>No. of Hours per Week:</label>
+            <select id="no_of_hours_${i}">
+                <option value="none" selected disabled>None</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6</option>
+            </select><br>
+            <div id="batch_no_${i}"></div><br>
+        `;
+        container.appendChild(subjectDiv);
+
+        document.getElementById(`subject_type_${i}`).addEventListener("change", function () {
+            generateBatchDropdown(i);
+        });
+    }
+}
+
+function generateBatchDropdown(index) {
+    const subjectType = document.getElementById(`subject_type_${index}`).value;
+    const extraOptionsDiv = document.getElementById(`batch_no_${index}`);
+
+    if (subjectType === "Practical" || subjectType === "Practicum") {
+        extraOptionsDiv.innerHTML = `
+            <label>Batch No:</label>
+            <select id="batch_select_${index}" onchange="handleBatchSelection(${index})">
+                <option value="none" selected disabled>None</option>
+                <option value="batch_I">Batch I</option>
+                <option value="batch_II">Batch II</option>
+                <option value="batch_I_II">Batch I and Batch II</option>
+            </select><br>
+            <div id="extra_input_${index}"></div>
+        `;
+    } else {
+        extraOptionsDiv.innerHTML = "";
+    }
+}
+
+function handleBatchSelection(index) {
+    const selectedBatch = document.getElementById(`batch_select_${index}`).value;
+    const extraInputDiv = document.getElementById(`extra_input_${index}`);
+    extraInputDiv.innerHTML = "";
+
+    if (selectedBatch === "batch_I" || selectedBatch === "batch_II") {
+        extraInputDiv.innerHTML = `
+            <label>No. of Students in ${selectedBatch.replace(/_/g, " ")}: </label>
+            <input type="number" id="students_${index}" min="1" required><br>
+        `;
+    } else if (selectedBatch === "batch_I_II") {
+        extraInputDiv.innerHTML = `
+            <label>Batch Type:</label>
+            <select id="batch_handling_${index}" onchange="handleBatchType(${index})">
+                <option value="none" selected disabled>None</option>
+                <option value="single_batch">Single Batch</option>
+                <option value="separate_batch">Separate Batch</option>
+            </select><br>
+            <div id="student_input_${index}"></div>
+        `;
+    }
+}
+
+function handleBatchType(index) {
+    const batchHandling = document.getElementById(`batch_handling_${index}`).value;
+    const studentInputDiv = document.getElementById(`student_input_${index}`);
+    studentInputDiv.innerHTML = "";
+
+    if (batchHandling === "single_batch") {
+        studentInputDiv.innerHTML = `
+            <label>No. of Students:</label>
+            <input type="number" id="students_${index}" min="1" required><br>
+        `;
+    } else if (batchHandling === "separate_batch") {
+        studentInputDiv.innerHTML = `
+            <label>No. of Students in Each Batch :</label>
+            <input type="number" id="students_batch" min="1" required><br>
+        `;
+    }
+}
 
 function saveStaffDetails() {
     const staff_name = document.getElementById("staff_name").value;
@@ -167,7 +200,7 @@ function saveStaffDetails() {
         alert("please enter Staff Name.");
         return;
     }
-    if (!department || !semester || !year || isNaN(no_of_subjects)) {
+    if (!department || !semester || !year || isNaN(no_of_subjects) || no_of_subjects <= 0) {
         alert("Please fill in all fields.");
         return;
     }
@@ -175,12 +208,15 @@ function saveStaffDetails() {
     let subjectNames = [];
     let subjectTypes = [];
     let subjectHours = [];
+    let studentsPerBatch = [];
 
     for (let i = 1; i <= no_of_subjects; i++) {
         let subject_name = document.getElementById(`subject_${i}`).value.trim();
         let subject_type = document.getElementById(`subject_type_${i}`).value;
         let subject_hours = document.getElementById(`no_of_hours_${i}`).value;
         let batch_no = null;
+        let student_count = null;
+
 
         if (!subject_name) {
             alert(` Please enter Subject ${i} Name.`);
@@ -196,17 +232,27 @@ function saveStaffDetails() {
         }
 
         // Ensure batch dropdown exists before retrieving its value
-        let batchElement = document.getElementById(`batch_select_${i}`);
-        if ((subject_type === "Practical" || subject_type === "Practicum") && batchElement) {
-            batch_no = batchElement.value;
-            if (batch_no && batch_no !== "none") {
-                subject_type = `${subject_type} - ${batch_no}`; // Append batch to subject type
-            }
-        }
+         let batchElement = document.getElementById(`batch_select_${i}`);
+                if ((subject_type === "Practical" || subject_type === "Practicum") && batchElement) {
+                    batch_no = batchElement.value;
+                    if (batch_no && batch_no !== "none") {
+                        let studentInput = document.getElementById(`students_${i}`);
+                        if (studentInput) {
+                            student_count = studentInput.value.trim();
+                            if (!student_count || isNaN(student_count) || student_count <= 0) {
+                                alert(`Please enter a valid number of students for Subject ${i}.`);
+                                return;
+                            }
+                        }
+                        subject_type = `${subject_type} - ${batch_no}`;
+                    }
+                }
+
 
         subjectNames.push(subject_name);
         subjectTypes.push(subject_type);
         subjectHours.push(subject_hours);
+        studentsPerBatch.push(student_count || "N/A");
     }
 
     const staffData = {
@@ -217,7 +263,8 @@ function saveStaffDetails() {
         no_of_subjects: no_of_subjects,
         subject_names: subjectNames,
         subject_types: subjectTypes,
-        subject_hours: subjectHours
+        subject_hours: subjectHours,
+        students_per_batch: studentsPerBatch
     };
 
     console.log("Sending staff data:", staffData);
@@ -243,5 +290,3 @@ function saveStaffDetails() {
 
 </body>
 </html>
-
-
