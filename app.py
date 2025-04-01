@@ -1,10 +1,10 @@
 from flask import Flask, render_template, redirect, flash, session, url_for, request, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
+from flask_cors import CORS
 import sqlite3
 import re
 import random
 import pandas as pd
-
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
@@ -149,7 +149,7 @@ def login_check():
 def update_password():
     if request.method == 'POST':
         username = request.form['uname']
-        old_password = request.form['passwd_old']
+        e_mail = request.form['email']
         new_password = request.form['passwd_new']
         confirm_password = request.form['passwd_confirm']
 
@@ -158,15 +158,14 @@ def update_password():
         cursor = conn.cursor()
 
         # Fetch user details from database
-        cursor.execute("SELECT passwd FROM tbl_login WHERE user_name = ?", (username,))
+        cursor.execute("SELECT email FROM signUp_tbl WHERE user_name = ?", (username,))
         user = cursor.fetchone()
 
         if user:
-            db_password_hash = user[0]
+            db_email = user[0]
 
             # Check if old password matches
-            if check_password_hash(db_password_hash, old_password):
-
+            if db_email == e_mail :
                 # Check if new password and confirm password match
                 if new_password == confirm_password:
                     new_hashed_password = generate_password_hash(new_password)
@@ -182,7 +181,7 @@ def update_password():
                 else:
                     flash("New password and confirm password do not match.", "error")
             else:
-                flash("Old password is incorrect.", "error")
+                flash("Username and Email doesn't matches.", "error")
         else:
             flash("Username not found.", "error")
 
@@ -279,23 +278,25 @@ def save_staff():
 
         subject_names = data.get("subject_names", [])  # Expecting a list
         subject_types = data.get("subject_types", [])  # Expecting a list
-        subject_hours = data.get("subject_hours", [])
+        subject_hours = data.get("subject_hours", [])  # Expecting a list
+        students_per_batch = data.get("students_per_batch", [])  # Expecting a list
 
         # Ensure all required fields are provided
         if not (staff_name and department and semester and year and no_of_subjects and subject_hours):
             return jsonify({"error": "All fields are required"}), 400
 
-        if not subject_names or not all(subject_names) or not subject_types or not all(subject_types):
-            return jsonify({"error": "Subject names and types cannot be empty"}), 400
+        if not subject_names or not all(subject_names) or not subject_types or not all(subject_types) or not students_per_batch:
+            return jsonify({"error": "Subject names,types,hours and student counts cannot be empty"}), 400
 
         # Convert list to comma-separated string
         subject_names_str = ",".join(subject_names)
         subject_types_str = ",".join(subject_types)
         subject_hours_str = ",".join(subject_hours)
+        students_per_batch_str = ",".join(students_per_batch)
 
         # Ensure all required fields are provided
         if not all([staff_name, department, semester, year, no_of_subjects, subject_names_str, subject_types_str,
-                    subject_hours_str]):
+                    subject_hours_str,students_per_batch_str]):
             return jsonify({"error": "All fields are required"}), 400
 
         # Connect to SQLite database
@@ -316,7 +317,8 @@ def save_staff():
                 no_of_subjects INTEGER NOT NULL,
                 subject_names TEXT NOT NULL,   
                 subject_types TEXT NOT NULL,
-                hours_per_week TEXT NOT NULL
+                hours_per_week INTEGER NOT NULL,
+                students_per_batch INTEGER NOT NULL
             )
         """)
 
@@ -324,8 +326,8 @@ def save_staff():
         cursor.execute(f"""
                SELECT * FROM {table_name}
                WHERE staff_name=? AND department=? AND semester=? AND year=? 
-                 AND subject_names= ? AND subject_types=? AND hours_per_week=?
-           """, (staff_name, department, semester, year, subject_names_str, subject_types_str, subject_hours_str))
+                 AND subject_names= ? AND subject_types=? AND hours_per_week=? AND students_per_batch=?
+           """, (staff_name, department, semester, year, subject_names_str, subject_types_str, subject_hours_str,students_per_batch_str))
 
         existing_record = cursor.fetchone()
 
@@ -336,9 +338,9 @@ def save_staff():
         # Insert staff details into the table
         cursor.execute(f"""
             INSERT INTO {table_name} (staff_name, department, semester, year, no_of_subjects, subject_names, 
-            subject_types,hours_per_week) VALUES (?, ?, ?, ?, ?, ?, ?,?)
+            subject_types,hours_per_week, students_per_batch) VALUES (?, ?, ?, ?, ?, ?, ?,?,?)
              """, (staff_name, department, semester, year, no_of_subjects, subject_names_str,
-                   subject_types_str, subject_hours_str))
+                   subject_types_str, subject_hours_str, students_per_batch_str))
 
         # Commit and close connection
         conn.commit()
@@ -417,220 +419,259 @@ def save_classroom():
         return jsonify({"error": str(e)}), 500
 
 
-# API to  generate staff timetable
+def extract_hours(hours_str):
+    if not hours_str:
+        return [0]  # Default to zero hours if missing
+    if not isinstance(hours_str, str):
+        hours_str = str(hours_str)
+    hours_list = re.findall(r'\d+', hours_str)
+    return [int(hour) for hour in hours_list]
+
+
+# Function to determine lab/practical split based on hours per week
+def determine_split(total_hours, hours_per_day):
+    print(f"Determining split for total_hours={total_hours}, hours_per_day={hours_per_day}")
+    if total_hours == 6:
+        return random.choice([[2, 2, 2], [4, 2]]) if hours_per_day == 8 else [3, 3]
+    elif total_hours == 4:
+        return [2, 2]
+    elif total_hours == 8:
+        return [4, 4]
+    elif total_hours == 9:
+        return [3, 3, 3]
+    elif total_hours == 7:
+        return [3, 3]
+    else:
+        return [total_hours]
+
+
+# Function to initialize timetable
+def generate_timetable_structure(staff_data, hours_per_day):
+    days = ["MON", "TUE", "WED", "THU", "FRI"]
+    timetable = {staff["staff_name"]: {day: ["-"] * hours_per_day for day in days} for staff in staff_data}
+    return timetable
+
+
+# Function to check slot availability
+def is_slot_available(timetable, staff_name, day, slot):
+    return timetable[staff_name][day][slot] == "-"
+
+
+def allocate_classes(timetable, staff_data, hours_per_day):
+    print(f"Allocating classes for {len(staff_data)} staff members")
+    days = ["MON", "TUE", "WED", "THU", "FRI"]
+
+    for staff in staff_data:
+        staff_name = staff["staff_name"]
+        subject = staff["subject_names"]
+        subject_type = staff["subject_types"]
+        total_hours = sum(extract_hours(staff.get("hours_per_week", "0")))
+
+        print(f"Allocating {subject} for {staff_name} with total hours: {total_hours}")
+
+        if subject_type.lower() in ["practical", "practicum"]:
+            total_students = int(staff["total_students"])
+            students_per_batch = int(staff["students_per_batch"])
+
+            if total_students == students_per_batch:
+                label = f"{subject} (Lab)"
+                slots_needed = determine_split(total_hours, hours_per_day)
+            else:
+                label_batch1 = f"{subject} (Lab - Batch 1)"
+                label_batch2 = f"{subject} (Lab - Batch 2)"
+                slots_needed = determine_split(total_hours * 2, hours_per_day)
+
+            for split_hours in slots_needed:
+                assigned = False
+                for _ in range(100):  # Try different days/times
+                    day = random.choice(days)
+                    start_slot = random.randint(0, hours_per_day - split_hours)
+
+                    if all(is_slot_available(timetable, staff_name, day, slot) for slot in
+                           range(start_slot, start_slot + split_hours)):
+                        for slot in range(start_slot, start_slot + split_hours):
+                            if total_students == students_per_batch:
+                                timetable[staff_name][day][slot] = label
+                            else:
+                                timetable[staff_name][day][slot] = label_batch1 if slot % 2 == 0 else label_batch2
+                        assigned = True
+                        break
+                if not assigned:
+                    print(f"Could not assign all hours for {staff_name} - {subject}")
+
+        else:  # Theory subject
+            assigned_hours = 0
+            while assigned_hours < total_hours:
+                day = random.choice(days)
+                slot = random.randint(0, hours_per_day - 1)
+
+                if is_slot_available(timetable, staff_name, day, slot):
+                    timetable[staff_name][day][slot] = f"{subject} (Theory)"
+                    assigned_hours += 1
+
+    return timetable
+
+
+# Define the fitness function to evaluate the timetable quality
+def fitness(timetable, staff_data):
+    score = 0
+    for staff_name, schedule in timetable.items():
+        for day, periods in schedule.items():
+            for period in periods:
+                if period != "-":  # If there is a class assigned
+                    score += 1
+    return score  # Higher score is better
+
+
+# Genetic Algorithm-based timetable generation
+def genetic_algorithm(staff_data, hours_per_day, total_students, pop_size=10, generations=100):
+    days = ["MON", "TUE", "WED", "THU", "FRI"]
+    population = initialize_population(pop_size, staff_data, hours_per_day)
+    for generation in range(generations):
+        print(f"Generation {generation}...")
+        population = generate_next_generation(population, staff_data, hours_per_day)
+
+        best_individual = max(population, key=lambda x: fitness(x, staff_data))
+        print(f"Best fitness score: {fitness(best_individual, staff_data)}")
+
+        # If a sufficiently good solution is found, stop early
+        if fitness(best_individual, staff_data) == len(staff_data) * len(days) * hours_per_day:
+            break
+
+    best_timetable = max(population, key=lambda x: fitness(x, staff_data))
+    return best_timetable
+
+
+def initialize_population(pop_size, staff_data, hours_per_day):
+    population = []
+    for _ in range(pop_size):
+        timetable = generate_timetable_structure(staff_data, hours_per_day)
+        timetable = allocate_classes(timetable, staff_data, hours_per_day)
+        population.append(timetable)
+    return population
+
+
+def generate_next_generation(population, staff_data, hours_per_day):
+    # Sort the population by fitness score (best individual first)
+    population.sort(key=lambda x: fitness(x, staff_data), reverse=True)
+
+    # Select the top individuals (e.g., top 50% for crossover)
+    next_generation = population[:len(population) // 2]
+
+    # Apply crossover to generate new individuals
+    new_population = []
+    for i in range(len(next_generation) - 1):
+        parent1 = next_generation[i]
+        parent2 = next_generation[i + 1]
+
+        # Crossover - combine timetables from parent1 and parent2
+        child1, child2 = crossover(parent1, parent2)
+
+        new_population.append(child1)
+        new_population.append(child2)
+
+    # Apply mutation to introduce random changes
+    mutated_population = [mutate(timetable) for timetable in new_population]
+
+    # Return the new generation
+    return next_generation + mutated_population
+
+
+def pair_lab_subjects(timetable, staff_data):
+    for staff_name, schedule in timetable.items():
+        for day, periods in schedule.items():
+            for period_index, subject in enumerate(periods):
+                if "Lab" in subject:  # If it's a lab subject
+                    # Check if it's Batch 1 or Batch 2
+                    if "Batch 1" in subject:
+                        # Assign a different subject for Batch 2 at the same time
+                        batch2_subject = subject.replace("Batch 1", "Batch 2")
+                        if periods[period_index] == "-":
+                            periods[period_index] = batch2_subject
+                    elif "Batch 2" in subject:
+                        # Assign a different subject for Batch 1 at the same time
+                        batch1_subject = subject.replace("Batch 2", "Batch 1")
+                        if periods[period_index] == "-":
+                            periods[period_index] = batch1_subject
+    return timetable
+
+
+def crossover(timetable1, timetable2):
+    child1, child2 = timetable1.copy(), timetable2.copy()
+
+    for staff_name in timetable1:
+        for day in timetable1[staff_name]:
+            if random.random() > 0.5:
+                child1[staff_name][day], child2[staff_name][day] = timetable2[staff_name][day], timetable1[staff_name][day]
+
+    return child1, child2
+
+
+def mutate(timetable):
+    staff_name = random.choice(list(timetable.keys()))
+    day = random.choice(list(timetable[staff_name].keys()))
+    slot = random.randint(0, len(timetable[staff_name][day]) - 1)
+
+    timetable[staff_name][day][slot] = random.choice(["Math", "Physics", "Chemistry", "Lab"])
+
+    return timetable
+
+
+# Function to fetch and process staff data from the database
+def fetch_staff_data(cursor, department):
+    table_name = f"staff_{department}"
+    cursor.execute(
+        f"SELECT staff_name, semester, year, subject_names, subject_types, hours_per_week, students_per_batch FROM {table_name}"
+    )
+    # Fetch all rows from the query result
+    staff_data = cursor.fetchall()
+
+    if not staff_data:
+        print("No staff data retrieved")
+        return jsonify({"error": "No staff data found"}), 404
+
+    # Convert the result to a list of dictionaries, with column names as keys
+    column_names = [column[0] for column in cursor.description]
+    staff_data_dict = [
+        dict(zip(column_names, row)) for row in staff_data
+    ]
+
+    # Convert hours_per_week into a list of integers
+    for staff in staff_data_dict:
+        staff['hours_per_week'] = extract_hours(staff['hours_per_week'])
+
+    return staff_data_dict
+
+
+# API to generate staff timetable
 @app.route("/timetable_staff", methods=["POST"])
 def timetable_staff():
     try:
-        # Receive JSON data from request
         data = request.json
-        department = data.get("department")
-        department = re.sub(r"[^a-zA-Z0-9_]", "_", department)  # Replace special characters with "_"
-        hours_per_day = int(data.get("hours_per_day",0))
-        time_slots = data.get("time_slot",[])
-        students_per_batch = int(data.get("students_per_batch", 0))
-        total_students = int(data.get("total_students", 0))
+        department = data.get("department", "").strip()
+        hours_per_day = int(data.get("hours_per_day", 0))
+        total_students = data.get("total_students", 0)
 
-        # Check for missing fields
-        if not department or not hours_per_day or not time_slots or not students_per_batch:
-            return jsonify({"error": "Missing required fields"}), 400
+        if not department or hours_per_day <= 0:
+            return jsonify({"error": "Invalid department or hours per day"}), 400
 
-        # Connect to SQLite database
         conn = sqlite3.connect("db_AcademicPlannerAdvisor.db")
         cursor = conn.cursor()
 
-        # Fetch staff data from the relevant table
-        table_name = f"staff_{department}"
-        cursor.execute(
-            f"SELECT staff_name, semester, year, no_of_subjects, subject_names, subject_types, hours_per_week FROM {table_name}")
-        staff_data = cursor.fetchall()
+        # Fetch staff data from the database
+        staff_data = fetch_staff_data(cursor, department)
         conn.close()
 
         if not staff_data:
             return jsonify({"error": "No data found for the selected department"}), 404
 
-        # Process fetched data
-        days=["MON", "TUE", "WED", "THU", "FRI"]
-        periods = hours_per_day
-        timetable = generate_timetable(staff_data,days,time_slots, periods, total_students,students_per_batch)
-        save_timetable_to_db(department,timetable,time_slots)
-
-        return jsonify({"message": "Timetable generated successfully", "timetable": timetable})
+        # Generate timetable using the genetic algorithm
+        timetable = genetic_algorithm(staff_data, hours_per_day, total_students)
+        return jsonify(timetable)
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-def generate_timetable(staff_data, days, time_slots, periods, total_students, students_per_batch):
-    """Generate staff timetable with continuous lab allocation but non-continuous theory allocation."""
-    timetable = {staff[0]: {day: ["-" for _ in range(periods)] for day in days} for staff in staff_data}
-    global_schedule = {day: ["-" for _ in range(periods)] for day in days}  # Global check for all periods
-
-    lab_pairs = {}
-    for staff in staff_data:
-        for subject, subject_type in zip(staff[4].split(","), staff[5].split(",")):
-            if "practical" in subject_type.lower() or "practicum" in subject_type.lower():
-                lab_pairs[subject.lower()] = None
-
-    lab_list = list(lab_pairs.keys())
-    for i in range(0, len(lab_list) - 1, 2):
-        lab_pairs[lab_list[i]] = lab_list[i + 1]
-        lab_pairs[lab_list[i + 1]] = lab_list[i]
-
-    for staff in staff_data:
-        staff_name, _, _, _, subjects, subject_types, hours_per_week = staff
-        subjects_list = subjects.split(",")
-        subject_types_list = subject_types.split(",")
-        hours_per_subject = extract_hours(hours_per_week)
-
-        subject_info = list(zip(subjects_list, subject_types_list, hours_per_subject))
-        random.shuffle(subject_info)  # Shuffle subjects for randomness
-
-        for subject, subject_type, total_hours in subject_info:
-            if "pd/pt" in subject.lower():
-                subject_display = "(PD/PT)"
-            elif "practical" in subject_type.lower() or "practicum" in subject_type.lower():
-                subject_display = "(Lab)"
-            else:
-                subject_display = "(Theory)"
-
-            available_slots = [(d, p) for d in days for p in range(periods)]
-            random.shuffle(available_slots)
-
-            if "practical" in subject_type.lower() or "practicum" in subject_type.lower():
-                paired_subject = lab_pairs.get(subject.lower(), None)
-                split_hours = determine_split(total_hours)
-
-                if paired_subject:
-                    paired_staff = next((s for s in staff_data if paired_subject in s[4]), None)
-                    if paired_staff:
-                        paired_staff_name = paired_staff[0]
-                        assigned_hours = 0
-                        for continuous_hours in split_hours:
-                            for day in days:
-                                for period in range(periods - continuous_hours + 1):
-                                    if all(timetable[staff_name][day][period + i] == "-" for i in
-                                           range(continuous_hours)) and \
-                                            all(timetable[paired_staff_name][day][period + i] == "-" for i in
-                                                range(continuous_hours)):
-                                        for i in range(continuous_hours):
-                                            timetable[staff_name][day][
-                                                period + i] = f"{subject} - Batch 1 {subject_display}"
-                                            timetable[paired_staff_name][day][
-                                                period + i] = f"{paired_subject} - Batch 2 {subject_display}"
-                                        assigned_hours += continuous_hours
-                                        if assigned_hours >= total_hours:
-                                            break
-                                if assigned_hours >= total_hours:
-                                    break
-                else:
-                    assigned_hours = 0
-                    for continuous_hours in split_hours:
-                        for day in days:
-                            for period in range(periods - continuous_hours + 1):
-                                if assigned_hours < total_hours and all(
-                                        timetable[staff_name][day][period + i] == "-" for i in range(continuous_hours)):
-                                    for i in range(continuous_hours):
-                                        timetable[staff_name][day][
-                                            period + i] = f"{subject} - Batch 1 {subject_display}"
-                                    assigned_hours += continuous_hours
-                                    if assigned_hours >= total_hours:
-                                        break
-            else:
-                assigned_hours = 0
-                for day, period in available_slots:
-                    if assigned_hours < total_hours and timetable[staff_name][day][period] == "-":
-                        timetable[staff_name][day][period] = f"{subject} {subject_display}"
-                        assigned_hours += 1
-                        if assigned_hours >= total_hours:
-                            break
-
-    return timetable
-
-
-def determine_split(total_hours):
-    """Dynamically split lab sessions for continuous allocation."""
-    if total_hours == 6:
-        return [3, 3]  # Ensuring labs are split into equal parts
-    elif total_hours == 4:
-        return [2, 2]  # Splitting into two equal parts
-    elif total_hours == 8:
-        return [4, 4]  # Split into two equal parts
-    elif total_hours == 9:
-        return [3, 3, 3]  # Split into three equal parts
-    else:
-        return [total_hours]  # Default, no split
-
-
-def extract_hours(hours_str):
-    """Extract individual hours as a list of integers."""
-    return list(map(int, re.findall(r'\d+', hours_str)))
-
-def save_timetable_to_db(department, timetable, time_slots):
-    """Store the generated timetable into SQLite database."""
-    conn = sqlite3.connect("db_AcademicPlannerAdvisor.db")
-    cursor = conn.cursor()
-
-    table_name = f"staff_timetable_{department}"
-
-    cursor.execute(f"""
-        CREATE TABLE IF NOT EXISTS {table_name} (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            staff_name TEXT,
-            day TEXT,
-            period INTEGER,
-            subject TEXT
-        )
-    """)
-
-    cursor.execute(f"DELETE FROM {table_name}")
-
-    for staff_name, schedule in timetable.items():
-        for day, periods in schedule.items():
-            for period_index, subject in enumerate(periods):
-                cursor.execute(f"""
-                    INSERT INTO {table_name} (staff_name, day, period, subject) 
-                    VALUES (?, ?, ?, ?)
-                """, (staff_name, day, period_index + 1, subject))
-
-    conn.commit()
-    conn.close()
-
-def fetch_staff_timetable_from_db(department):
-    """Fetch the timetable from the database."""
-    conn = sqlite3.connect("db_AcademicPlannerAdvisor.db")
-    query = f"SELECT staff_name, day, period, subject FROM staff_timetable_{department} ORDER BY staff_name, day, period"
-    df = pd.read_sql_query(query, conn)
-    conn.close()
-    return df
-
-def format_staff_timetable(df):
-    """Format the timetable into a structure for display."""
-    timetable = {}
-    for _, row in df.iterrows():
-        staff = row["staff_name"]
-        day = row["day"]
-        period = row["period"]
-        subject = row["subject"]
-
-        if staff not in timetable:
-            timetable[staff] = {d: ["-" for _ in range(8)] for d in ["MON", "TUE", "WED", "THU", "FRI"]}
-
-        timetable[staff][day][period - 1] = subject
-    return timetable
-
-@app.route('/timetable/<department>')
-def display_timetable(department):
-    try:
-        df = fetch_staff_timetable_from_db(department)
-
-        if df.empty:
-            return "No timetable found for this department.", 404  # Handle empty timetable case
-
-        timetable = format_staff_timetable(df)
-        return render_template('staff_timetable.html', timetable=timetable)
-
-    except Exception as e:
-        return f"Error loading timetable: {str(e)}", 500
-
+        print(f"Error: {str(e)}")
+        return jsonify({"error": "An error occurred while generating the timetable"}), 500
+    
 if __name__ == '__main__':
     app.run(debug=True)
