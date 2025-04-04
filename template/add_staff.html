@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -131,7 +132,7 @@ function generateBatchDropdown(index) {
     const subjectType = document.getElementById(`subject_type_${index}`).value;
     const extraOptionsDiv = document.getElementById(`batch_no_${index}`);
 
-    if (subjectType === "Practical" || subjectType === "Practicum") {
+    if (subjectType === "Practical" || subjectType === "Practicum" ||subjectType === "PD/PT" ) {
         extraOptionsDiv.innerHTML = `
             <label>Batch No:</label>
             <select id="batch_select_${index}" onchange="handleBatchSelection(${index})">
