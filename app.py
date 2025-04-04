@@ -419,20 +419,54 @@ def save_classroom():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/timetable_staff", methods=["POST"])
+def timetable_staff():
+    try:
+        data = request.json
+        print("Received data:", data)  # Debugging
+
+        department = data.get("department", "").strip()
+        hours_per_day = int(data.get("hours_per_day", 0))
+        total_students = int(data.get("total_students" , 0))
+        time_slots = data.get("time_slot", [])
+
+        if not department or hours_per_day <= 0:
+            return jsonify({"error": "Invalid department or hours per day"}), 400
+
+        if not time_slots or not isinstance(time_slots, list):
+            return jsonify({"error": "Invalid or missing time slot data"}), 400
+
+        conn = sqlite3.connect("db_AcademicPlannerAdvisor.db")
+        cursor = conn.cursor()
+        staff_data = fetch_staff_data(cursor, department)
+        conn.close()
+
+        if not staff_data:
+            return jsonify({"error": "No data found for the selected department"}), 404
+
+        timetable = generate_timetable_structure(staff_data, hours_per_day,time_slots)
+        timetable = allocate_classes(timetable, staff_data, hours_per_day)
+
+        return jsonify({"timetable": timetable, "time_slot": time_slots})
+    except Exception as e:
+        print(f"Error: {str(e)}")  # Logs the error
+        return jsonify({"error": "An error occurred while generating the timetable"}), 500
+
+
+
 def extract_hours(hours_str):
+    """Extracts hours from a given string."""
     if not hours_str:
-        return [0]  # Default to zero hours if missing
+        return [0]
     if not isinstance(hours_str, str):
         hours_str = str(hours_str)
     hours_list = re.findall(r'\d+', hours_str)
-    return [int(hour) for hour in hours_list]
+    return [int(hour) for hour in hours_list] if hours_list else [0]
 
-
-# Function to determine lab/practical split based on hours per week
 def determine_split(total_hours, hours_per_day):
-    print(f"Determining split for total_hours={total_hours}, hours_per_day={hours_per_day}")
+    """Determines how lab hours should be split across multiple days."""
     if total_hours == 6:
-        return random.choice([[2, 2, 2], [4, 2]]) if hours_per_day == 8 else [3, 3]
+        return [2, 2, 2] if hours_per_day == 8 else [3, 3]
     elif total_hours == 4:
         return [2, 2]
     elif total_hours == 8:
@@ -444,234 +478,121 @@ def determine_split(total_hours, hours_per_day):
     else:
         return [total_hours]
 
-
-# Function to initialize timetable
-def generate_timetable_structure(staff_data, hours_per_day):
+def generate_timetable_structure(staff_data, hours_per_day, time_slots):
+    """Creates an empty timetable structure for all staff members."""
     days = ["MON", "TUE", "WED", "THU", "FRI"]
-    timetable = {staff["staff_name"]: {day: ["-"] * hours_per_day for day in days} for staff in staff_data}
-    return timetable
 
+    return {
+        staff["staff_name"]: {
+            day: [{"slot": time_slots[i], "subject": "-"} for i in range(hours_per_day)]
+            for day in days
+        }
+        for staff in staff_data
+    }
 
-# Function to check slot availability
-def is_slot_available(timetable, staff_name, day, slot):
-    return timetable[staff_name][day][slot] == "-"
-
+def is_slot_available(timetable, staff_name, day, start_slot, duration):
+    """Checks if the required time slots are free for allocation."""
+    try:
+        return all(
+            timetable[staff_name][day][slot]["subject"] == "-"
+            for slot in range(start_slot, start_slot + duration)
+        )
+    except IndexError:
+        return False
 
 def allocate_classes(timetable, staff_data, hours_per_day):
-    print(f"Allocating classes for {len(staff_data)} staff members")
+    """Allocates theory and practical classes into the timetable."""
     days = ["MON", "TUE", "WED", "THU", "FRI"]
+    day_index = 0
 
     for staff in staff_data:
         staff_name = staff["staff_name"]
         subject = staff["subject_names"]
-        subject_type = staff["subject_types"]
+        subject_type = staff["subject_types"].lower()
         total_hours = sum(extract_hours(staff.get("hours_per_week", "0")))
 
-        print(f"Allocating {subject} for {staff_name} with total hours: {total_hours}")
+        for _ in range(total_hours):
+            assigned = False
+            for _ in range(50):  # Retry mechanism
+                day = days[day_index % len(days)]
+                start_slot = random.randint(0, hours_per_day - 1)
 
-        if subject_type.lower() in ["practical", "practicum"]:
-            total_students = int(staff["total_students"])
-            students_per_batch = int(staff["students_per_batch"])
+                if is_slot_available(timetable, staff_name, day, start_slot, 1):
+                    timetable[staff_name][day][start_slot]["subject"] = f"{subject} ({subject_type.capitalize()})"
+                    assigned = True
+                    break
 
-            if total_students == students_per_batch:
-                label = f"{subject} (Lab)"
-                slots_needed = determine_split(total_hours, hours_per_day)
-            else:
-                label_batch1 = f"{subject} (Lab - Batch 1)"
-                label_batch2 = f"{subject} (Lab - Batch 2)"
-                slots_needed = determine_split(total_hours * 2, hours_per_day)
+            if not assigned:
+                print(f"❌ Could not assign all hours for {staff_name} - {subject}")
 
-            for split_hours in slots_needed:
-                assigned = False
-                for _ in range(100):  # Try different days/times
-                    day = random.choice(days)
-                    start_slot = random.randint(0, hours_per_day - split_hours)
-
-                    if all(is_slot_available(timetable, staff_name, day, slot) for slot in
-                           range(start_slot, start_slot + split_hours)):
-                        for slot in range(start_slot, start_slot + split_hours):
-                            if total_students == students_per_batch:
-                                timetable[staff_name][day][slot] = label
-                            else:
-                                timetable[staff_name][day][slot] = label_batch1 if slot % 2 == 0 else label_batch2
-                        assigned = True
-                        break
-                if not assigned:
-                    print(f"Could not assign all hours for {staff_name} - {subject}")
-
-        else:  # Theory subject
-            assigned_hours = 0
-            while assigned_hours < total_hours:
-                day = random.choice(days)
-                slot = random.randint(0, hours_per_day - 1)
-
-                if is_slot_available(timetable, staff_name, day, slot):
-                    timetable[staff_name][day][slot] = f"{subject} (Theory)"
-                    assigned_hours += 1
+            day_index += 1
 
     return timetable
-
-
-# Define the fitness function to evaluate the timetable quality
-def fitness(timetable, staff_data):
-    score = 0
-    for staff_name, schedule in timetable.items():
-        for day, periods in schedule.items():
-            for period in periods:
-                if period != "-":  # If there is a class assigned
-                    score += 1
-    return score  # Higher score is better
-
-
-# Genetic Algorithm-based timetable generation
-def genetic_algorithm(staff_data, hours_per_day, total_students, pop_size=10, generations=100):
-    days = ["MON", "TUE", "WED", "THU", "FRI"]
-    population = initialize_population(pop_size, staff_data, hours_per_day)
-    for generation in range(generations):
-        print(f"Generation {generation}...")
-        population = generate_next_generation(population, staff_data, hours_per_day)
-
-        best_individual = max(population, key=lambda x: fitness(x, staff_data))
-        print(f"Best fitness score: {fitness(best_individual, staff_data)}")
-
-        # If a sufficiently good solution is found, stop early
-        if fitness(best_individual, staff_data) == len(staff_data) * len(days) * hours_per_day:
-            break
-
-    best_timetable = max(population, key=lambda x: fitness(x, staff_data))
-    return best_timetable
-
-
-def initialize_population(pop_size, staff_data, hours_per_day):
-    population = []
-    for _ in range(pop_size):
-        timetable = generate_timetable_structure(staff_data, hours_per_day)
-        timetable = allocate_classes(timetable, staff_data, hours_per_day)
-        population.append(timetable)
-    return population
-
-
-def generate_next_generation(population, staff_data, hours_per_day):
-    # Sort the population by fitness score (best individual first)
-    population.sort(key=lambda x: fitness(x, staff_data), reverse=True)
-
-    # Select the top individuals (e.g., top 50% for crossover)
-    next_generation = population[:len(population) // 2]
-
-    # Apply crossover to generate new individuals
-    new_population = []
-    for i in range(len(next_generation) - 1):
-        parent1 = next_generation[i]
-        parent2 = next_generation[i + 1]
-
-        # Crossover - combine timetables from parent1 and parent2
-        child1, child2 = crossover(parent1, parent2)
-
-        new_population.append(child1)
-        new_population.append(child2)
-
-    # Apply mutation to introduce random changes
-    mutated_population = [mutate(timetable) for timetable in new_population]
-
-    # Return the new generation
-    return next_generation + mutated_population
-
-
-def pair_lab_subjects(timetable, staff_data):
-    for staff_name, schedule in timetable.items():
-        for day, periods in schedule.items():
-            for period_index, subject in enumerate(periods):
-                if "Lab" in subject:  # If it's a lab subject
-                    # Check if it's Batch 1 or Batch 2
-                    if "Batch 1" in subject:
-                        # Assign a different subject for Batch 2 at the same time
-                        batch2_subject = subject.replace("Batch 1", "Batch 2")
-                        if periods[period_index] == "-":
-                            periods[period_index] = batch2_subject
-                    elif "Batch 2" in subject:
-                        # Assign a different subject for Batch 1 at the same time
-                        batch1_subject = subject.replace("Batch 2", "Batch 1")
-                        if periods[period_index] == "-":
-                            periods[period_index] = batch1_subject
-    return timetable
-
-
-def crossover(timetable1, timetable2):
-    child1, child2 = timetable1.copy(), timetable2.copy()
-
-    for staff_name in timetable1:
-        for day in timetable1[staff_name]:
-            if random.random() > 0.5:
-                child1[staff_name][day], child2[staff_name][day] = timetable2[staff_name][day], timetable1[staff_name][day]
-
-    return child1, child2
 
 
 def mutate(timetable):
+    """Randomly swaps two slots for a staff member to create a mutation."""
     staff_name = random.choice(list(timetable.keys()))
     day = random.choice(list(timetable[staff_name].keys()))
-    slot = random.randint(0, len(timetable[staff_name][day]) - 1)
 
-    timetable[staff_name][day][slot] = random.choice(["Math", "Physics", "Chemistry", "Lab"])
+    slots = [i for i, period in enumerate(timetable[staff_name][day]) if period["subject"] != "-"]
+
+    if len(slots) >= 2:
+        slot1, slot2 = random.sample(slots, 2)
+        period1, period2 = timetable[staff_name][day][slot1]["subject"], timetable[staff_name][day][slot2]["subject"]
+
+        if ("Lab" in period1 and "Theory" in period2) or ("Lab" in period2 and "Theory" in period1):
+            print("Mutation skipped: Swapping between Lab and Theory is not allowed.")
+            return timetable  # Skip mutation if it violates constraints
+
+        timetable[staff_name][day][slot1]["subject"], timetable[staff_name][day][slot2]["subject"] = period2, period1
+        print(f" Mutation: Swapped {period1} and {period2} for {staff_name} on {day}")
 
     return timetable
 
 
-# Function to fetch and process staff data from the database
 def fetch_staff_data(cursor, department):
     table_name = f"staff_{department}"
-    cursor.execute(
-        f"SELECT staff_name, semester, year, subject_names, subject_types, hours_per_week, students_per_batch FROM {table_name}"
-    )
-    # Fetch all rows from the query result
-    staff_data = cursor.fetchall()
+
+    try:
+        cursor.execute(
+            f"SELECT staff_name, semester, year, subject_names, subject_types, hours_per_week, students_per_batch FROM {table_name}"
+        )
+        staff_data = cursor.fetchall()
+        print("Raw Data Fetched from DB:", staff_data)  # ✅ Debugging: Print raw fetched data
+    except sqlite3.Error as e:
+        print(f"Database error: {e}")
+        return []
 
     if not staff_data:
         print("No staff data retrieved")
-        return jsonify({"error": "No staff data found"}), 404
+        return []
 
-    # Convert the result to a list of dictionaries, with column names as keys
-    column_names = [column[0] for column in cursor.description]
-    staff_data_dict = [
-        dict(zip(column_names, row)) for row in staff_data
-    ]
+    column_names = [desc[0] for desc in cursor.description]
+    staff_data_dict = [dict(zip(column_names, row)) for row in staff_data]
 
-    # Convert hours_per_week into a list of integers
+    # ✅ Debugging: Print formatted data
+    print("\nFormatted Staff Data (Before Extracting Hours):")
+    for staff in staff_data_dict:
+        print(staff)
+
+    # Convert `hours_per_week` to a list of integers
     for staff in staff_data_dict:
         staff['hours_per_week'] = extract_hours(staff['hours_per_week'])
 
+    print("\nFormatted Staff Data (After Extracting Hours):")
+    for staff in staff_data_dict:
+        staff['students_per_batch'] = safe_int(staff['students_per_batch'])
+        print(staff)
+
     return staff_data_dict
 
-
-# API to generate staff timetable
-@app.route("/timetable_staff", methods=["POST"])
-def timetable_staff():
+def safe_int(value, default=0):
     try:
-        data = request.json
-        department = data.get("department", "").strip()
-        hours_per_day = int(data.get("hours_per_day", 0))
-        total_students = data.get("total_students", 0)
+        return int(value) if value else default
+    except ValueError:
+        return default
 
-        if not department or hours_per_day <= 0:
-            return jsonify({"error": "Invalid department or hours per day"}), 400
-
-        conn = sqlite3.connect("db_AcademicPlannerAdvisor.db")
-        cursor = conn.cursor()
-
-        # Fetch staff data from the database
-        staff_data = fetch_staff_data(cursor, department)
-        conn.close()
-
-        if not staff_data:
-            return jsonify({"error": "No data found for the selected department"}), 404
-
-        # Generate timetable using the genetic algorithm
-        timetable = genetic_algorithm(staff_data, hours_per_day, total_students)
-        return jsonify(timetable)
-
-    except Exception as e:
-        print(f"Error: {str(e)}")
-        return jsonify({"error": "An error occurred while generating the timetable"}), 500
     
 if __name__ == '__main__':
     app.run(debug=True)
