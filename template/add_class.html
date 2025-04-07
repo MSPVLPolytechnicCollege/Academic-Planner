@@ -30,7 +30,7 @@
 
 		<h2>Add Classroom Details</h2><br>
         <label for="department">Department:</label>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
         <select id="department">
             <option value="none" selected disabled>None</option>
             <option value="Basic_Engg_CE&amp;IT">Basic CE and IT</option>
@@ -49,22 +49,21 @@
         <br>
 
         <label for="no_of_classroom">No. of Classrooms Available:</label>
-        &nbsp;
+        &nbsp;&nbsp;&nbsp;&nbsp;
         <input type="number"  oninput="generateClassroomNameFields()" id="no_of_classroom" name="no_of_classroom" min="1" max="3"  placeholder="Enter the no.of classrooms available" required><br>
 
         <div id="classroomName_fields"> </div>
 
 	    <label for="no_of_lab">No. of Lab Available:</label>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
         <input type="number" oninput="generateLabNameFields()" id="no_of_lab" name="no_of_lab" min="1" max="5"  placeholder="Enter the no.of lab available" required><br>
 
         <div id="labName_fields"> </div>
 
         <button type="submit" onclick="SaveClassListDetails()">Save Class List</button>
     </div>
-    <script>
-        function generateClassroomNameFields()
-        {
+<script>
+    function generateClassroomNameFields() {
         const count_class = document.getElementById("no_of_classroom").value;
         const container = document.getElementById("classroomName_fields");
         container.innerHTML = ""; // Clear previous fields
@@ -72,79 +71,120 @@
         for (let i = 1; i <= count_class; i++) {
             container.innerHTML += `
                 <label>Classroom ${i} Name:</label>
-               &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-               <input type="text" id="Classroom_${i}" placeholder="Enter Classroom ${i}" required><br>
-
+                &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;
+                <input type="text" id="Classroom_${i}" placeholder="Enter Classroom ${i}" required><br><br>
             `;
         }
     }
 
-    function generateLabNameFields()
-     {
+    function generateLabNameFields() {
         const count_lab = document.getElementById("no_of_lab").value;
         const container = document.getElementById("labName_fields");
         container.innerHTML = ""; // Clear previous fields
 
-
         for (let i = 1; i <= count_lab; i++) {
             container.innerHTML += `
                 <label>Lab ${i} Name:</label>
-                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;
+                &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;
                 <input type="text" id="Lab_${i}" placeholder="Enter Lab ${i}" required><br>
 
+                <label for="Lab_${i}_subject_count">No. of Subjects Held in the Lab:</label>
+                <input type="number" id="Lab_${i}_subject_count" min="1" max="6"
+                       oninput="generateLabSubjects(${i}, this.value)"
+                       placeholder="Enter number" required><br>
+
+                <div id="Lab_${i}_subjects" style="margin-top: 10px;"></div>
+                <br>
             `;
         }
-
     }
 
-     document.addEventListener("DOMContentLoaded", () => {
+    function generateLabSubjects(labIndex, subjectCount) {
+        const container = document.getElementById(`Lab_${labIndex}_subjects`);
+        container.innerHTML = "";
+
+        subjectCount = parseInt(subjectCount);
+        if (isNaN(subjectCount) || subjectCount <= 0) return;
+
+        for (let j = 1; j <= subjectCount; j++) {
+            container.innerHTML += `
+                <label>Subject ${j} (Lab ${labIndex}):</label>
+                &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;
+                <input type="text" id="Lab_${labIndex}_Subject_${j}" placeholder="Enter Subject ${j}" required><br>
+            `;
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
         document.querySelector("button").addEventListener("click", SaveClassListDetails);
     });
 
-     function SaveClassListDetails()
-    {
-        const department = document.getElementById("department").value;
+    function SaveClassListDetails() {
+        const department = document.getElementById("department").value.trim();
         const no_of_classroom = parseInt(document.getElementById("no_of_classroom").value);
-        const no_of_lab=parseInt(document.getElementById("no_of_lab").value);
+        const no_of_lab = parseInt(document.getElementById("no_of_lab").value);
+
+         if (!department || isNaN(no_of_classroom) || isNaN(no_of_lab) || no_of_classroom <= 0 || no_of_lab <= 0)
+         {
+            alert(" Please fill out all required fields.");
+            return;
+         }
 
         let classroom_names = [];
-        let lab_names = [];
+        let lab_details = [];
 
-        for (let i = 1; i <= no_of_classroom; i++)
-        {
+        // Validate and collect classroom names
+        for (let i = 1; i <= no_of_classroom; i++) {
             let classroom = document.getElementById(`Classroom_${i}`).value.trim();
-            if (!classroom)
-            {
+            if (!classroom) {
                 alert(`Please enter Classroom ${i} Name.`);
                 return;
             }
-
             classroom_names.push(classroom);
         }
 
-        for (let i = 1; i <= no_of_lab; i++)
-        {
+        // Validate and collect lab names and subject details
+        for (let i = 1; i <= no_of_lab; i++) {
+            let lab = document.getElementById(`Lab_${i}`).value.trim();
+            let subject_count = document.getElementById(`Lab_${i}_subject_count`)?.value;
 
-            let lab= document.getElementById(`Lab_${i}`).value.trim();
-
-            if (!lab)
-            {
+            if (!lab) {
                 alert(`Please enter Lab ${i} Name.`);
                 return;
             }
-            lab_names.push(lab);
+
+            if (!subject_count || isNaN(subject_count) || subject_count <= 0) {
+                alert(`Please enter a valid number of subjects for Lab ${i}.`);
+                return;
+            }
+
+            let subjects = [];
+            for (let j = 1; j <= subject_count; j++) {
+                let subject = document.getElementById(`Lab_${i}_Subject_${j}`)?.value.trim();
+                if (!subject) {
+                    alert(`Please enter Subject ${j} for Lab ${i}.`);
+                    return;
+                }
+                subjects.push(subject);
+            }
+
+            lab_details.push({
+                lab_name: lab,
+                subject_count: parseInt(subject_count),
+                subjects: subjects
+            });
         }
 
-        const ClassListData =
-        {
+        const ClassListData = {
             department: department,
             no_of_classroom: no_of_classroom,
             no_of_lab: no_of_lab,
             classroom_names: classroom_names,
-            lab_names: lab_names
+            lab_details: lab_details
         };
 
-        console.log("Sending staff data:", ClassListData);
+        console.log("Sending classroom & lab data:", ClassListData);
 
         fetch("http://127.0.0.1:5000/save_classroom", {
             method: "POST",
@@ -161,10 +201,7 @@
         })
         .catch(error => console.error("Error:", error));
     }
+</script>
 
-    </script>
 </body>
 </html>
-
-
-		
