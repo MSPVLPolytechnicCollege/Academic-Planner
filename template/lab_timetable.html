@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Add Lab Timetable Details</title>
+    <style>
+        body {
+            background: url('/static/bg_page.jpg') no-repeat center fixed;
+            background-size: cover;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 70px;
+            border-radius: 10px;
+            box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+
+        input[type=text], input[type=number], select {
+            width: 50%;
+            padding: 12px 20px;
+            margin: 8px 0;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: #04AA6D;
+            color: white;
+            padding: 12px 20px;
+            margin: 8px 0;
+            border: none;
+            cursor: pointer;
+            width: 80%;
+        }
+
+        table {
+            width: 70%;
+            border-collapse: collapse;
+            margin: 10px auto;
+            font-size: 14px;
+        }
+
+        th, td {
+            border: 1px solid black;
+            text-align: center;
+            padding: 8px;
+        }
+
+        th {
+            background-color: #f4f4f4;
+        }
+
+        h2, h3 {
+            text-align: center;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>GENERATE LAB TIMETABLE</h1>
+        <label for="department">Department:</label>
+        &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;
+        <select id="department">
+            <option value="none" selected disabled>None</option>
+            <option value="Basic_Engg_CE_IT">Basic CE and IT</option>
+            <option value="Basic_Engg_ECE">Basic ECE</option>
+            <option value="Basic_Engg_EEE">Basic EEE</option>
+            <option value="Basic_Engg_CIVIL">Basic CIVIL</option>
+            <option value="Basic_Engg_MECH">Basic MECH</option>
+            <option value="Basic_Engg_AUTO">Basic AUTO</option>
+            <option value="CE">Computer Engineering (CE)</option>
+            <option value="IT">Information Technology (IT)</option>
+            <option value="ECE">Electronics & Communication Engineering (ECE)</option>
+            <option value="EEE">Electrical & Electronics Engineering (EEE)</option>
+            <option value="MECH">Mechanical Engineering (MECH)</option>
+            <option value="AUTO">Automobile Engineering (AUTO)</option>
+            <option value="CIVIL">Civil Engineering (CIVIL)</option>
+        </select><br>
+        <label for="HoursPerDay">No of Hours per Day:</label>
+        <select id="HoursPerDay">
+            <option value="none" selected disabled>None</option>
+            <option value="7">7</option>
+            <option value="8">8</option>
+        </select><br>
+        <button onclick="SaveData()" id="lab_timetable">GENERATE LAB TIMETABLE</button>
+    </div>
+    <br>
+    <div id="timetable-container"><center><h1>Lab Timetable</h1></center></div>
+
+    <script>
+         window.onload = function () {
+    sessionStorage.removeItem("timetable_shown");
+    document.getElementById("timetable-container").innerHTML = "";
+};
+
+function SaveData() {
+    const department = document.getElementById("department").value;
+    const hours_per_day = parseInt(document.getElementById("HoursPerDay").value);
+
+    if (!department || hours_per_day <= 0) {
+        alert("Please enter all required fields.");
+        return;
+    }
+
+    const time_slot = (hours_per_day === 8) ? [
+        "9:00am-9:50am", "9:50am-10:40am", "10:40am-10:50am", "10:50am-11:40am", "11:40am-12:30pm",
+        "12:30pm-1:10pm", "1:15pm-2:05pm", "2:05pm-2:55pm", "2:55pm-3:05pm", "3:05pm-3:55pm", "3:55pm-4:45pm"
+    ] : [
+        "9:00am-10:00am", "10:00am-11:00am", "11:00am-11:10am", "11:10am-12:10pm", "12:10pm-1:10pm",
+        "1:10pm-1:50pm", "1:55pm-2:50pm", "2:50pm-3:45pm", "3:45pm-4:40pm"
+    ];
+
+    const lab_timetable = { department, hours_per_day, time_slot };
+
+    console.log("Sending staff timetable data:", lab_timetable);
+
+    fetch("http://127.0.0.1:5000/timetable_lab", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(lab_timetable)
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log("Received API response:", data);
+        if (data.error) {
+            alert("Error: " + data.error);
+        } else if (!data.timetable || Object.keys(data.timetable).length === 0) {
+            alert("No timetable generated.");
+        } else {
+            alert(data.message);
+            sessionStorage.setItem("timetable_data", JSON.stringify(data.timetable));
+            displayTimetable(data.timetable);
+        }
+    })
+    .catch(error => {
+        console.error("Fetch error:", error);
+        alert("Failed to fetch timetable.");
+    });
+}
+
+function displayTimetable(timetable) {
+    const container = document.getElementById("timetable-container");
+    container.innerHTML = "";
+
+    if (!timetable || Object.keys(timetable).length === 0) {
+        container.innerHTML = "<p>No timetable available.</p>";
+        return;
+    }
+
+    const hoursPerDay = parseInt(document.getElementById("HoursPerDay").value) || 8;
+    const daysOfWeek = ["MON", "TUE", "WED", "THU", "FRI"];
+
+    for (const staff_name in timetable) {
+        let tableHtml = `<h2>${lab_name}</h2><table border="1"><tr><th>Day</th>` +
+            [...Array(hoursPerDay)].map((_, i) => `<th>Period ${i + 1}</th>`).join('') + `</tr>`;
+
+        daysOfWeek.forEach(day => {
+            const subjects = (timetable[staff_name][day] || []).map(period => period.subject || "-");
+            tableHtml += `<tr><td>${day}</td>` + subjects.map(subject => `<td>${subject}</td>`).join('') + `</tr>`;
+        });
+
+        tableHtml += "</table><br>";
+        container.innerHTML += tableHtml;
+    }
+}
+    </script>
+</body>
+</html>
