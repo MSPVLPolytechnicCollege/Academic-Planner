@@ -9,6 +9,8 @@ import pandas as pd
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
 
+CORS(app, resources={r"/*": {"origins": "*"}})  # Allows all origins (not recommended for production)
+
 
 # Function to insert user data into the database
 @app.route('/')
@@ -358,66 +360,82 @@ def save_staff():
 @app.route("/save_classroom", methods=["POST"])
 def save_classroom():
     try:
-        # Receive JSON data from request
         data = request.json
-        department = data.get("department").strip()
-        department = re.sub(r"[^a-zA-Z0-9_]", "_", department)  # Replace special characters with "_"
+        department = data.get("department", "").strip()
+        department = re.sub(r"[^a-zA-Z0-9_]", "_", department)  # Normalize department name
         no_of_classroom = data.get("no_of_classroom", 0)
         no_of_lab = data.get("no_of_lab", 0)
-        classroom_names = data.get("classroom_names", [])  # Comma-separated string
-        lab_names = data.get("lab_names", [])  # Comma-separated string
+        classroom_names = data.get("classroom_names", [])
+        lab_details = data.get("lab_details", [])
 
-        # Ensure all required fields are provided
-        if (not department or no_of_classroom <= 0 or not classroom_names or not all(classroom_names)
-                or no_of_lab <= 0 or not lab_names or not all(lab_names)):
+        if not department or no_of_classroom <= 0 or not classroom_names or not all(classroom_names) \
+                or no_of_lab <= 0 or not lab_details or not all(ld.get("lab_name") and ld.get("subjects") for ld in lab_details):
             return jsonify({"error": "All fields are required"}), 400
 
-        # Convert list to comma-separated string
         classroom_names_str = ",".join(classroom_names)
+        lab_names = [ld["lab_name"] for ld in lab_details]
         lab_names_str = ",".join(lab_names)
 
         conn = sqlite3.connect("db_AcademicPlannerAdvisor.db")
         cursor = conn.cursor()
 
-        # table name based on department
-        table_name = f"ClassList_{department}"
-
+        # Main class list table
+        table_classlist = f"ClassList_{department}"
         cursor.execute(f"""
-         CREATE TABLE IF NOT EXISTS {table_name} (
+            CREATE TABLE IF NOT EXISTS {table_classlist} (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 department TEXT NOT NULL,
                 no_of_classroom INTEGER NOT NULL,
-                classroom_names TEXT NOT NULL,  
+                classroom_names TEXT NOT NULL,
                 no_of_lab INTEGER NOT NULL,
-                lab_names TEXT NOT NULL )
+                lab_names TEXT NOT NULL
+            )
         """)
 
-        # Check if record already exists
+        # Lab details table (lab name, subject count, each subject name)
+        table_labdetails = f"LabDetails_{department}"
         cursor.execute(f"""
-                      SELECT * FROM {table_name}
-                      WHERE department = ? AND no_of_classroom = ? AND classroom_names LIKE ? AND
-                      no_of_lab = ? AND lab_names LIKE ?
-                  """, (department, no_of_classroom, f"%{classroom_names_str}%", no_of_lab, f"%{lab_names_str}%"))
+            CREATE TABLE IF NOT EXISTS {table_labdetails} (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                lab_name TEXT NOT NULL,
+                subject_count INTEGER NOT NULL,
+                subject_name TEXT NOT NULL
+            )
+        """)
 
-        existing_record = cursor.fetchone()
-
-        if existing_record:
+        # Check for duplicate class list
+        cursor.execute(f"""
+            SELECT * FROM {table_classlist}
+            WHERE department = ? AND no_of_classroom = ? AND classroom_names = ? AND
+                  no_of_lab = ? AND lab_names = ?
+        """, (department, no_of_classroom, classroom_names_str, no_of_lab, lab_names_str))
+        if cursor.fetchone():
             conn.close()
             return jsonify({"error": "Duplicate entry! This ClassList data already exists."}), 400
 
-        cursor.execute(f'''
-            INSERT INTO {table_name} (department, no_of_classroom, classroom_names, no_of_lab, lab_names)
+        # Insert into class list
+        cursor.execute(f"""
+            INSERT INTO {table_classlist} (department, no_of_classroom, classroom_names, no_of_lab, lab_names)
             VALUES (?, ?, ?, ?, ?)
-        ''', (department, no_of_classroom, classroom_names_str, no_of_lab, lab_names_str))
+        """, (department, no_of_classroom, classroom_names_str, no_of_lab, lab_names_str))
+
+        # Insert into lab details table
+        for lab in lab_details:
+            lab_name = lab["lab_name"]
+            subject_count = lab["subject_count"]
+            for subject in lab["subjects"]:
+                cursor.execute(f"""
+                    INSERT INTO {table_labdetails} (lab_name, subject_count, subject_name)
+                    VALUES (?, ?, ?)
+                """, (lab_name, subject_count, subject))
 
         conn.commit()
         conn.close()
 
-        return jsonify({"message": f"All details saved successfully in {table_name}"}), 201
+        return jsonify({"message": f"All details saved successfully in {table_classlist} and {table_labdetails}"}), 201
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
 
 @app.route("/timetable_staff", methods=["POST"])
 def timetable_staff():
@@ -593,6 +611,6 @@ def safe_int(value, default=0):
     except ValueError:
         return default
 
-    
+
 if __name__ == '__main__':
     app.run(debug=True)
