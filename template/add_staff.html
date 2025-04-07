@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -34,11 +33,13 @@
 		<h2>Add Staff Members</h2>
 		<label for="staff_name" >Staff Name :</label>
         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 		<input type="text" id="staff_name"  placeholder="Enter the staff name" required><br>
 
 
 	    <label for="department">Department:</label>
         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;
         <select id="department">
             <option value="none" selected disabled>None</option>
             <option value="Basic_Engg_CE&amp;IT">Basic CE and IT</option>
@@ -58,7 +59,8 @@
         <br>
 
         <label for="semester">Semester:</label>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;
         <select id="semester">
             <option value="none" selected disabled>None</option>
             <option value="1">1</option>
@@ -72,7 +74,7 @@
 
         <label for="year">Year:</label>
         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp; &nbsp;
         <select id="year">
             <option value="none" selected disabled>None</option>
             <option value="Year I">Year I</option>
@@ -80,7 +82,8 @@
             <option value="Year III">Year III</option>
         </select>
         <br>
-        <label for="no_of_subjects">No. of Subjects Taken:</label>
+        <label for="no_of_subjects">Number of Subjects Taken:</label>
+        &nbsp;&nbsp; &nbsp;
         <input type="number" oninput="generateSubjectFields()" id="no_of_subjects" name="no_of_subjects" min="1" max="6" placeholder="Enter the no.of subject taken by the staff" required><br>
 
         <div id="subject_fields"></div>
@@ -97,9 +100,11 @@
         const subjectDiv = document.createElement("div");
         subjectDiv.innerHTML += `
             <label>Subject ${i} Name:</label>
+             &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;
             <input type="text" id="subject_${i}" placeholder="Enter Subject ${i}" required><br>
 
             <label>Subject ${i} Type:</label>
+            &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;
             <select id="subject_type_${i}">
                 <option value="none" selected disabled>None</option>
                 <option value="Theory">Theory</option>
@@ -109,6 +114,7 @@
             </select><br>
 
             <label>No. of Hours per Week:</label>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
             <select id="no_of_hours_${i}">
                 <option value="none" selected disabled>None</option>
                 <option value="1">1</option>
@@ -132,9 +138,11 @@ function generateBatchDropdown(index) {
     const subjectType = document.getElementById(`subject_type_${index}`).value;
     const extraOptionsDiv = document.getElementById(`batch_no_${index}`);
 
-    if (subjectType === "Practical" || subjectType === "Practicum" ||subjectType === "PD/PT" ) {
+    if (subjectType === "Practical" || subjectType === "Practicum" || subjectType === "PD/PT") {
         extraOptionsDiv.innerHTML = `
-            <label>Batch No:</label>
+            <label>Batch Number:</label>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
             <select id="batch_select_${index}" onchange="handleBatchSelection(${index})">
                 <option value="none" selected disabled>None</option>
                 <option value="batch_I">Batch I</option>
@@ -155,12 +163,14 @@ function handleBatchSelection(index) {
 
     if (selectedBatch === "batch_I" || selectedBatch === "batch_II") {
         extraInputDiv.innerHTML = `
-            <label>No. of Students in ${selectedBatch.replace(/_/g, " ")}: </label>
+            <label>Number of Students in ${selectedBatch.replace(/_/g, " ")}: </label>
             <input type="number" id="students_${index}" min="1" required><br>
         `;
     } else if (selectedBatch === "batch_I_II") {
         extraInputDiv.innerHTML = `
             <label>Batch Type:</label>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
             <select id="batch_handling_${index}" onchange="handleBatchType(${index})">
                 <option value="none" selected disabled>None</option>
                 <option value="single_batch">Single Batch</option>
@@ -178,12 +188,13 @@ function handleBatchType(index) {
 
     if (batchHandling === "single_batch") {
         studentInputDiv.innerHTML = `
-            <label>No. of Students:</label>
+            <label>Number of Students:</label>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
             <input type="number" id="students_${index}" min="1" required><br>
         `;
     } else if (batchHandling === "separate_batch") {
         studentInputDiv.innerHTML = `
-            <label>No. of Students in Each Batch :</label>
+            <label>No.of Students in Each Batch :</label>
             <input type="number" id="students_batch" min="1" required><br>
         `;
     }
