@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -19,7 +20,7 @@
             margin: 8px 0;
             border: none;
             cursor: pointer;
-            width: 73%;
+            width: 81%;
         }
         .hint{
         display: block;
@@ -39,7 +40,7 @@
 
 	    <label for="department">Department:</label>
         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-        &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;
+         &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;
         <select id="department">
             <option value="none" selected disabled>None</option>
             <option value="Basic_Engg_CE&amp;IT">Basic CE and IT</option>
@@ -60,7 +61,7 @@
 
         <label for="semester">Semester:</label>
         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;
+         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;
         <select id="semester">
             <option value="none" selected disabled>None</option>
             <option value="1">1</option>
@@ -73,8 +74,8 @@
         <br>
 
         <label for="year">Year:</label>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp; &nbsp;
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;
+        &nbsp;&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;
         <select id="year">
             <option value="none" selected disabled>None</option>
             <option value="Year I">Year I</option>
@@ -83,7 +84,7 @@
         </select>
         <br>
         <label for="no_of_subjects">Number of Subjects Taken:</label>
-        &nbsp;&nbsp; &nbsp;
+         &nbsp;&nbsp; &nbsp;
         <input type="number" oninput="generateSubjectFields()" id="no_of_subjects" name="no_of_subjects" min="1" max="6" placeholder="Enter the no.of subject taken by the staff" required><br>
 
         <div id="subject_fields"></div>
@@ -100,7 +101,7 @@
         const subjectDiv = document.createElement("div");
         subjectDiv.innerHTML += `
             <label>Subject ${i} Name:</label>
-             &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;
+            &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;
             <input type="text" id="subject_${i}" placeholder="Enter Subject ${i}" required><br>
 
             <label>Subject ${i} Type:</label>
@@ -138,9 +139,9 @@ function generateBatchDropdown(index) {
     const subjectType = document.getElementById(`subject_type_${index}`).value;
     const extraOptionsDiv = document.getElementById(`batch_no_${index}`);
 
-    if (subjectType === "Practical" || subjectType === "Practicum" || subjectType === "PD/PT") {
+    if (subjectType === "Practical" || subjectType === "Practicum" ||subjectType === "PD/PT" ) {
         extraOptionsDiv.innerHTML = `
-            <label>Batch Number:</label>
+             <label>Batch Number:</label>
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
              &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
             <select id="batch_select_${index}" onchange="handleBatchSelection(${index})">
@@ -163,14 +164,14 @@ function handleBatchSelection(index) {
 
     if (selectedBatch === "batch_I" || selectedBatch === "batch_II") {
         extraInputDiv.innerHTML = `
-            <label>Number of Students in ${selectedBatch.replace(/_/g, " ")}: </label>
+             <label>Number of Students in ${selectedBatch.replace(/_/g, " ")}: </label>
             <input type="number" id="students_${index}" min="1" required><br>
         `;
     } else if (selectedBatch === "batch_I_II") {
         extraInputDiv.innerHTML = `
             <label>Batch Type:</label>
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+              &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
             <select id="batch_handling_${index}" onchange="handleBatchType(${index})">
                 <option value="none" selected disabled>None</option>
                 <option value="single_batch">Single Batch</option>
@@ -189,7 +190,7 @@ function handleBatchType(index) {
     if (batchHandling === "single_batch") {
         studentInputDiv.innerHTML = `
             <label>Number of Students:</label>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
             <input type="number" id="students_${index}" min="1" required><br>
         `;
     } else if (batchHandling === "separate_batch") {
@@ -245,26 +246,50 @@ function saveStaffDetails() {
 
         // Ensure batch dropdown exists before retrieving its value
          let batchElement = document.getElementById(`batch_select_${i}`);
-                if ((subject_type === "Practical" || subject_type === "Practicum") && batchElement) {
-                    batch_no = batchElement.value;
-                    if (batch_no && batch_no !== "none") {
-                        let studentInput = document.getElementById(`students_${i}`);
-                        if (studentInput) {
-                            student_count = studentInput.value.trim();
-                            if (!student_count || isNaN(student_count) || student_count <= 0) {
-                                alert(`Please enter a valid number of students for Subject ${i}.`);
-                                return;
-                            }
-                        }
-                        subject_type = `${subject_type} - ${batch_no}`;
+if ((subject_type === "Practical" || subject_type === "Practicum" || subject_type === "PD/PT") && batchElement) {
+    batch_no = batchElement.value;
+    if (batch_no && batch_no !== "none") {
+        // Check student count inputs based on batch type
+        if (batch_no === "batch_I" || batch_no === "batch_II") {
+            let studentInput = document.getElementById(`students_${i}`);
+            if (studentInput) {
+                student_count = studentInput.value.trim();
+                if (!student_count || isNaN(student_count) || student_count <= 0) {
+                    alert(`Please enter a valid number of students for Subject ${i}.`);
+                    return;
+                }
+            }
+        } else if (batch_no === "batch_I_II") {
+            let batchHandling = document.getElementById(`batch_handling_${i}`)?.value;
+            if (batchHandling === "single_batch") {
+                let studentInput = document.getElementById(`students_${i}`);
+                if (studentInput) {
+                    student_count = studentInput.value.trim();
+                    if (!student_count || isNaN(student_count) || student_count <= 0) {
+                        alert(`Please enter a valid number of students for Subject ${i}.`);
+                        return;
                     }
                 }
+            } else if (batchHandling === "separate_batch") {
+                let studentInput = document.getElementById(`students_batch`);
+                if (studentInput) {
+                    student_count = studentInput.value.trim();
+                    if (!student_count || isNaN(student_count) || student_count <= 0) {
+                        alert(`Please enter a valid number of students in each batch for Subject ${i}.`);
+                        return;
+                    }
+                }
+            }
+        }
 
+        subject_type = `${subject_type} - ${batch_no}`;
+    }
+}
 
         subjectNames.push(subject_name);
         subjectTypes.push(subject_type);
         subjectHours.push(subject_hours);
-        studentsPerBatch.push(student_count || "N/A");
+        studentsPerBatch.push(student_count);
     }
 
     const staffData = {
