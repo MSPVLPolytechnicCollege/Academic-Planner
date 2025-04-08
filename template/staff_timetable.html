@@ -1,218 +1,198 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Add Staff Details</title>
-    <style>
-        body {
-    	background: url('/static/bg_page.jpg') no-repeat center fixed;
-    	background-size: cover;
-    	font-family: Arial, sans-serif;
-    	margin: 0;
-    	padding: 0;
-		}
+   <title>Add Staff Details</title>
+   <style>
+       body {
+           background: url('/static/bg_page.jpg') no-repeat center fixed;
+           background-size: cover;
+           font-family: Arial, sans-serif;
+           margin: 0;
+           padding: 0;
+       }
 
-	/* Centering & Making Sure Background is Visible */
-	.container {
-    	max-width: 600px;
-    	margin: 50px auto;
-    	padding: 70px;
-    	background: lavender /* Light background to ensure readability */
-    	border-radius: 10px;
-    	box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.2);
-    	text-align:center
-		}
-        input[type=text],input[type=number],select {
-            width: 50%;
-            padding: 12px 20px;
-            margin: 8px 0;
-            border: 1px solid #ccc;
-            box-sizing: border-box;
-        }
-        button {
-            background-color: #04AA6D;
-            color: white;
-            padding: 12px 20px;
-            margin: 8px 0;
-            border: none;
-            cursor: pointer;
-            width: 80%;
-        }
-		 table {
-    width: 70%; /* Reduce table width */
-    border-collapse: collapse;
-    margin: 10px auto; /* Center and reduce margin */
-    font-size: 14px; /* Reduce font size */
-}
 
-th, td {
-    border: 1px solid black;
-    text-align: center;
-    padding: 8px; /* Reduce padding */
-}
+       .container {
+           max-width: 600px;
+           margin: 50px auto;
+           padding: 70px;
+           border-radius: 10px;
+           box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.2);
+           text-align: center;
+       }
 
-th {
-    background-color: #f4f4f4;
-    font-size: 14px;
-}
 
-h2, h3 {
-    text-align: center;
-    font-size: 18px; /* Reduce heading size */
-}
-</style>
+       input[type=text], input[type=number], select {
+           width: 50%;
+           padding: 12px 20px;
+           margin: 8px 0;
+           border: 1px solid #ccc;
+           box-sizing: border-box;
+       }
+
+
+       button {
+           background-color: #04AA6D;
+           color: white;
+           padding: 12px 20px;
+           margin: 8px 0;
+           border: none;
+           cursor: pointer;
+           width: 80%;
+       }
+
+
+       table {
+           width: 70%;
+           border-collapse: collapse;
+           margin: 10px auto;
+           font-size: 14px;
+       }
+
+
+       th, td {
+           border: 1px solid black;
+           text-align: center;
+           padding: 8px;
+       }
+
+
+       th {
+           background-color: #f4f4f4;
+       }
+
+
+       h2, h3 {
+           text-align: center;
+           font-size: 18px;
+       }
+   </style>
+</head>
 <body>
-		<div class="container">
-		<h1>GENERATE STAFF TIMETABLE</h1>
-		<label for="department">Department:</label>
-       		 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-        	<select id="department">
-            		<option value="none" selected disabled>None</option>
-           	 	<option value="Basic_Engg_CE&amp;IT">Basic CE and IT</option>
-            		<option value="Basic_Engg_ECE">Basic ECE</option>
-            		<option value="Basic_Engg_EEE">Basic EEE</option>
-            		<option value="Basic_Engg_CIVIL">Basic CIVIL</option>
-            		<option value="Basic_Engg_MECH">Basic MECH</option>
-            		<option value="Basic_Engg_AUTO">Basic AUTO</option>
-            		<option value="CE">Computer Engineering (CE)</option>
-            		<option value="IT">Information Technology(IT)</option>
-            		<option value="ECE">Electronics & Communication Engineering (ECE)</option>
-           		<option value="EEE">Electrical & Electronics Engineering (EEE)</option>
-            		<option value="MECH">Mechanical Engineering (MECH)</option>
-            		<option value="AUTO">Automobile Engineering (AUTO)</option>
-            		<option value="CIVIL">Civil Engineering (CIVIL)</option>
-        	</select><br>
-		<label for="HoursPerDay">No of Hours per Day:</label>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-		<select id="HoursPerDay">
-			<option value="none" selected disabled>None</option>
-			<option value="7">7</option>
-			<option value="8">8</option>
-		</select><br>
-		<label for="total_students">Total .No .of Students :</label>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-		<input type="number" id="total_students" placeholder="Enter the total no.of students" required><br>
-		<label for="students_per_batch">No of Students in a Batch:</label>
-		<input type="number" id="students_per_batch" placeholder="Enter the no.of students in a batch" required>
-		<button onclick="SaveData()" id="staff_timetable">GENERATE STAFF TIMETABLE</button>
-		</div>
-    <br>
+   <div class="container">
+       <h1>GENERATE STAFF TIMETABLE</h1>
+       <label for="department">Department:</label>
+       <select id="department">
+           <option value="none" selected disabled>None</option>
+           <option value="Basic_Engg_CE_IT">Basic CE and IT</option>
+           <option value="Basic_Engg_ECE">Basic ECE</option>
+           <option value="Basic_Engg_EEE">Basic EEE</option>
+           <option value="Basic_Engg_CIVIL">Basic CIVIL</option>
+           <option value="Basic_Engg_MECH">Basic MECH</option>
+           <option value="Basic_Engg_AUTO">Basic AUTO</option>
+           <option value="CE">Computer Engineering (CE)</option>
+           <option value="IT">Information Technology (IT)</option>
+           <option value="ECE">Electronics & Communication Engineering (ECE)</option>
+           <option value="EEE">Electrical & Electronics Engineering (EEE)</option>
+           <option value="MECH">Mechanical Engineering (MECH)</option>
+           <option value="AUTO">Automobile Engineering (AUTO)</option>
+           <option value="CIVIL">Civil Engineering (CIVIL)</option>
+       </select><br>
+       <label for="HoursPerDay">No of Hours per Day:</label>
+       <select id="HoursPerDay">
+           <option value="none" selected disabled>None</option>
+           <option value="7">7</option>
+           <option value="8">8</option>
+       </select><br>
+       <label for="total_students">Total No. of Students:</label>
+       <input type="number" id="total_students" placeholder="Enter the total no. of students" required><br>
+       <button onclick="SaveData()" id="staff_timetable">GENERATE STAFF TIMETABLE</button>
+   </div>
+   <br>
+   <div id="timetable-container"><center><h1>Staff Timetable</h1></center></div>
 
 
-    <div id="timetable-container"><center><h1>Staff Timetable</h1></center></div>
-</body>
-<script>
+   <script>
+       window.onload = function () {
+           sessionStorage.removeItem("timetable_shown");
+           document.getElementById("timetable-container").innerHTML = "";
+       };
 
 
-	 window.onload = function () {
-            sessionStorage.removeItem("timetable_shown");
-            const container = document.getElementById("timetable-container");
-            if (container) {
-                container.innerHTML = ""; // Clear previous data
-            }
-        };
+       function SaveData() {
+    const department = document.getElementById("department").value;
+    const hours_per_day = parseInt(document.getElementById("HoursPerDay").value);
+    const total_students = parseInt(document.getElementById("total_students").value);
 
+    if (!department || isNaN(hours_per_day) || isNaN(total_students) || hours_per_day <= 0 || total_students <= 0) {
+        alert("Please enter all required fields.");
+        return;
+    }
 
-     function SaveData()
-    {
-        const department = document.getElementById("department").value;
-        const hours_per_day=parseInt(document.getElementById("HoursPerDay").value);
-        const total_students=parseInt(document.getElementById("total_students").value);
-        const students_per_batch=parseInt(document.getElementById("students_per_batch").value);
-        let time_slot= [];
+    const time_slot = (hours_per_day === 8) ? [
+        "9:00am-9:50am", "9:50am-10:40am", "10:40am-10:50am", "10:50am-11:40am", "11:40am-12:30pm",
+        "12:30pm-1:10pm", "1:15pm-2:05pm", "2:05pm-2:55pm", "2:55pm-3:05pm", "3:05pm-3:55pm", "3:55pm-4:45pm"
+    ] : [
+        "9:00am-10:00am", "10:00am-11:00am", "11:00am-11:10am", "11:10am-12:10pm", "12:10pm-1:10pm",
+        "1:10pm-1:50pm", "1:55pm-2:50pm", "2:50pm-3:45pm", "3:45pm-4:40pm"
+    ];
 
-        if (!department || isNaN(hours_per_day)  ||isNaN(total_students) || isNaN(students_per_batch))
-        {
-        	alert("Please enter all required fields.");
-        	return;
-    	}
+    const staff_timetable = {
+        department,
+        hours_per_day,
+        total_students,
+        time_slot  //  Make sure `time_slot` is included in the JSON
+    };
+    console.log("Sending staff data:", JSON.stringify(staff_timetable, null, 2)); // Debugging log (formatted)
 
+    fetch("http://127.0.0.1:5000/timetable_staff", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(staff_timetable)
+    })
+    .then(response => {
+    if (!response.ok) {
+        return response.json().then(err => { throw new Error(err.error || "Unknown error"); });
+    }
+    return response.json();
+    })
+    .then(data => {
+    if (data.error) {
+        alert("Error: " + data.error);
+    } else {
+        alert("Timetable generated successfully!");
+        sessionStorage.setItem("timetable_data", JSON.stringify(data.timetable));
+        displayTimetable(data.timetable);
+    }
+    })
+    .catch(error => {
+    console.error("Fetch error:", error);
+    alert("Failed to generate timetable. Check console for details.");
+    });
 
-        if(hours_per_day == 8)
-        {
-        	time_slot =[
-        	"9:00am-9:50am","9:50am-10:40am","10:40am-10:50am","10:50am-11:40am","11:40am-12:30pm",
-        	"12:30pm-1:10pm","1:15pm-2:05pm","2:05pm-2:55pm","2:55pm-3:05pm","3:05pm-3:55pm","3:55pm-4:45pm"
-        	];
-        }
-        else
-        {
-        	time_slot =[
-        	"9:00am-10:00am","10:00am-11:00am","11:00am-11:10am","11:10am-12:10pm",
-        	"12:10pm-1:10pm","1:10pm-1:50pm","1:55pm-2:50pm","2:50pm-3:45pm","3:45pm-4:40pm"
-        	];
-        }
-
-    	// Define staff_timetable object INSIDE the function
-    	const staffTimetable = {
-        department: department,
-        hours_per_day: parseInt(hours_per_day),
-        time_slot: time_slot,
-        total_students:total_students,
-        students_per_batch: students_per_batch
-    	};
-
-
-     	console.log("Sending staff data:", staffTimetable);
-
-            fetch("http://127.0.0.1:5000/timetable_staff", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(staffTimetable)
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.error) {
-                    alert("Error: " + data.error);
-                } else {
-                    alert(data.message);
-                    sessionStorage.setItem("timetable_data", JSON.stringify(data.timetable));
-                    displayTimetable(data.timetable);
-                }
-            })
-            .catch(error => console.error("Error:", error));
-        }
+   }
 
     function displayTimetable(timetable) {
     const container = document.getElementById("timetable-container");
-    container.innerHTML = ""; // Clear previous data
+    container.innerHTML = "";
 
-    // If timetable is empty or undefined, display message
     if (!timetable || Object.keys(timetable).length === 0) {
         container.innerHTML = "<p>No timetable available.</p>";
         return;
     }
 
-    const hoursPerDay = parseInt(document.getElementById("HoursPerDay").value) || 8; // Default to 8 if not selected
-    const periodsToDisplay = hoursPerDay; // Either 7 or 8 periods per day
-    const daysOfWeek = ["MON", "TUE", "WED", "THU", "FRI"]; // Days to display
+    const hoursPerDay = parseInt(document.getElementById("HoursPerDay").value) || 8;
+    const daysOfWeek = ["MON", "TUE", "WED", "THU", "FRI"];
+
+    console.log("Processing Timetable:", timetable); // Debugging Output
 
     for (const staff_name in timetable) {
-        let tableHtml = `
-            <h2>${staff_name}</h2>
-            <table>
-                <tr>
-                    <th>Day</th>
-                    ${[...Array(periodsToDisplay)].map((_, i) => `<th>Period ${i + 1}</th>`).join('')}
-                </tr>
-        `;
+        if (!timetable[staff_name]) continue;  // Skip undefined entries
 
-        // Loop through days of the week in the correct order
-        for (const day of daysOfWeek) {
-            // Check if the day exists in the staff timetable
-            const subjects = timetable[staff_name][day] || Array(periodsToDisplay).fill('-'); // Default to '-' if no subjects
-            tableHtml += `
-                <tr>
-                    <td>${day}</td>
-                    ${subjects.slice(0, periodsToDisplay).map(subject => `<td>${subject}</td>`).join('')}
-                </tr>
-            `;
-        }
+        let tableHtml = `<h2>${staff_name}</h2><table><tr><th>Day</th>` +
+            [...Array(hoursPerDay)].map((_, i) => `<th>Period ${i + 1}</th>`).join('') + `</tr>`;
+
+        daysOfWeek.forEach(day => {
+            const subjects = timetable[staff_name]?.[day] || Array(hoursPerDay).fill('-');
+            tableHtml += `<tr><td>${day}</td>` + subjects.map(subject => `<td>${subject || '-'}</td>`).join('') + `</tr>`;
+        });
 
         tableHtml += "</table><br>";
         container.innerHTML += tableHtml;
     }
 }
 
-    </script>
+
+   </script>
 </body>
 </html>
-
-
