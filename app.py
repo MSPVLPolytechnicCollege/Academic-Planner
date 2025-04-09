@@ -274,6 +274,7 @@ def save_staff():
         department = re.sub(r"[^a-zA-Z0-9_]", "_", department)  # Replace special characters with "_"
         semester = data.get("semester")
         year = data.get("year")
+        total_students = data.get("total_students", 0)
         no_of_subjects = data.get("no_of_subjects", 0)
 
         subject_names = data.get("subject_names", [])  # Expecting a list
@@ -282,20 +283,20 @@ def save_staff():
         students_per_batch = data.get("students_per_batch", [])  # Expecting a list
 
         # Ensure all required fields are provided
-        if not (staff_name and department and semester and year and no_of_subjects and subject_hours):
+        if not (staff_name and department and semester and year and total_students and no_of_subjects and subject_hours):
             return jsonify({"error": "All fields are required"}), 400
 
         if not subject_names or not all(subject_names) or not subject_types or not all(subject_types) or not students_per_batch:
             return jsonify({"error": "Subject names,types,hours and student counts cannot be empty"}), 400
 
         # Convert list to comma-separated string
-        subject_names_str = ",".join(subject_names)
-        subject_types_str = ",".join(subject_types)
-        subject_hours_str = ",".join(subject_hours)
-        students_per_batch_str = ",".join(students_per_batch)
+        subject_names_str = ",".join((map(str,subject_names)))
+        subject_types_str = ",".join((map(str,subject_types)))
+        subject_hours_str = ",".join(map(str, subject_hours))
+        students_per_batch_str = ",".join(map(str, students_per_batch))
 
         # Ensure all required fields are provided
-        if not all([staff_name, department, semester, year, no_of_subjects, subject_names_str, subject_types_str,
+        if not all([staff_name, department, semester, year, total_students, no_of_subjects, subject_names_str, subject_types_str,
                     subject_hours_str,students_per_batch_str]):
             return jsonify({"error": "All fields are required"}), 400
 
@@ -303,9 +304,11 @@ def save_staff():
         conn = sqlite3.connect("db_AcademicPlannerAdvisor.db")
         cursor = conn.cursor()
 
-        if department == "Basic_Engg_CE_IT" or department == "Basic_Engg_ECE" or department == "Basic_Engg_EEE "or department == "Basic_Engg_CIVIL" or department == "Basic_Engg_MECH" or department == "Basic_Engg_AUTO" :
+        basic_engg_departments = {"Basic_Engg_CE_IT", "Basic_Engg_ECE", "Basic_Engg_EEE", "Basic_Engg_CIVIL",
+                                  "Basic_Engg_MECH", "Basic_Engg_AUTO"}
+        if department in basic_engg_departments:
             table_name = f"staff_Basic"
-        elif department == "CE" or department == "IT":
+        elif department  in {"CE","IT"}:
             table_name = f"staff_CE_IT"
         else:
             table_name = f"staff_{department}"
@@ -322,16 +325,17 @@ def save_staff():
                 subject_names TEXT NOT NULL,   
                 subject_types TEXT NOT NULL,
                 hours_per_week INTEGER NOT NULL,
-                students_per_batch INTEGER NOT NULL
+                students_per_batch INTEGER NOT NULL,
+                total_students INTEGER NOT NULL
             )
         """)
 
         # Check if record already exists
         cursor.execute(f"""
                SELECT * FROM {table_name}
-               WHERE staff_name=? AND department=? AND semester=? AND year=? 
-                 AND subject_names= ? AND subject_types=? AND hours_per_week=? AND students_per_batch=?
-           """, (staff_name, department, semester, year, subject_names_str, subject_types_str, subject_hours_str,students_per_batch_str))
+               WHERE staff_name=? AND department=? AND semester=? AND year=?  AND no_of_subjects=?
+                 AND subject_names= ? AND subject_types=? AND hours_per_week=? AND students_per_batch=? AND total_students=?
+           """, (staff_name, department, semester, year, no_of_subjects, subject_names_str, subject_types_str, subject_hours_str,students_per_batch_str,total_students))
 
         existing_record = cursor.fetchone()
 
@@ -342,9 +346,9 @@ def save_staff():
         # Insert staff details into the table
         cursor.execute(f"""
             INSERT INTO {table_name} (staff_name, department, semester, year, no_of_subjects, subject_names, 
-            subject_types,hours_per_week, students_per_batch) VALUES (?, ?, ?, ?, ?, ?, ?,?,?)
+            subject_types,hours_per_week, students_per_batch, total_students) VALUES (?, ?, ?, ?, ?, ?, ?,?,?,?)
              """, (staff_name, department, semester, year, no_of_subjects, subject_names_str,
-                   subject_types_str, subject_hours_str, students_per_batch_str))
+                   subject_types_str, subject_hours_str, students_per_batch_str, total_students))
 
         # Commit and close connection
         conn.commit()
@@ -357,7 +361,6 @@ def save_staff():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
 
 @app.route("/save_classroom", methods=["POST"])
 def save_classroom():
