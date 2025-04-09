@@ -8,7 +8,7 @@
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th, td { border: 1px solid black; padding: 8px; text-align: left; }
         th { background-color: #f2f2f2; }
-        .delete-btn { background-color: red; color: white; width: 100%; cursor: pointer; }
+        .delete-btn { background-color: red; color: white; width: 99%; cursor: pointer; }
         .save-btn { background-color: #04AA6D; color: white; border: none; width: 100%; padding: 10px 15px; cursor: pointer; margin-top: 20px; display: block; }
         input[type=text], select {
             width: 50%;
@@ -168,7 +168,10 @@
             <td>${subject}</td>
             <td>${subjectType}</td>
             <td>${noOfHours}</td>
-            <td><button class="delete-btn" onclick="deleteRow(this)">Delete</button></td>
+            <td>
+                <button class="update-btn" onclick="updateRow(this)">Update</button>
+                <button class="delete-btn" onclick="deleteRow(this)">Delete</button>
+            </td>
         `;
 
         tableBody.appendChild(row);
@@ -178,6 +181,21 @@
         document.getElementById("subject").value = "";
         document.getElementById("subject_type").selectedIndex = 0;
         document.getElementById("no_of_hours").selectedIndex = 0;
+    }
+
+    function updateRow(button) {
+        const row = button.closest("tr");
+        const cells = row.getElementsByTagName("td");
+
+        document.getElementById("subject_code").value = cells[0].innerText;
+        document.getElementById("department").value = cells[1].innerText;
+        document.getElementById("semester").value = cells[2].innerText;
+        document.getElementById("year").value = cells[3].innerText;
+        document.getElementById("subject").value = cells[4].innerText;
+        document.getElementById("subject_type").value = cells[5].innerText;
+        document.getElementById("no_of_hours").value = cells[6].innerText;
+
+        row.remove();
     }
 
     function deleteRow(button) {
@@ -229,7 +247,5 @@
         .catch(error => console.error("Error:", error));
     }
 </script>
-
-
 </body>
 </html>
