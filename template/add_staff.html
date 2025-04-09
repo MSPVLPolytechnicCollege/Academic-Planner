@@ -74,7 +74,7 @@
         <br>
 
         <label for="year">Year:</label>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;
         &nbsp;&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;
         <select id="year">
             <option value="none" selected disabled>None</option>
@@ -83,6 +83,9 @@
             <option value="Year III">Year III</option>
         </select>
         <br>
+        <label for="total_students">Total No.Students </label>
+        &nbsp;&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;
+        <input type="number" id="total_students" placeholder="Enter Total number of students in a class" required><br>
         <label for="no_of_subjects">Number of Subjects Taken:</label>
          &nbsp;&nbsp; &nbsp;
         <input type="number" oninput="generateSubjectFields()" id="no_of_subjects" name="no_of_subjects" min="1" max="6" placeholder="Enter the no.of subject taken by the staff" required><br>
@@ -139,7 +142,7 @@ function generateBatchDropdown(index) {
     const subjectType = document.getElementById(`subject_type_${index}`).value;
     const extraOptionsDiv = document.getElementById(`batch_no_${index}`);
 
-    if (subjectType === "Practical" || subjectType === "Practicum" ||subjectType === "PD/PT" ) {
+    if (subjectType === "Practical" || subjectType === "Practicum") {
         extraOptionsDiv.innerHTML = `
              <label>Batch Number:</label>
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -206,6 +209,7 @@ function saveStaffDetails() {
     const department = document.getElementById("department").value;
     const semester = document.getElementById("semester").value;
     const year = document.getElementById("year").value;
+    const total_students = parseInt(document.getElementById("total_students").value);
     const no_of_subjects = parseInt(document.getElementById("no_of_subjects").value);
 
 
@@ -213,7 +217,7 @@ function saveStaffDetails() {
         alert("please enter Staff Name.");
         return;
     }
-    if (!department || !semester || !year || isNaN(no_of_subjects) || no_of_subjects <= 0) {
+    if (!department || !semester || !year || isNaN(no_of_subjects) ||total_students <= 0 || no_of_subjects <= 0) {
         alert("Please fill in all fields.");
         return;
     }
@@ -228,7 +232,7 @@ function saveStaffDetails() {
         let subject_type = document.getElementById(`subject_type_${i}`).value;
         let subject_hours = document.getElementById(`no_of_hours_${i}`).value;
         let batch_no = null;
-        let student_count = null;
+        let student_count = 0;
 
 
         if (!subject_name) {
@@ -246,7 +250,11 @@ function saveStaffDetails() {
 
         // Ensure batch dropdown exists before retrieving its value
          let batchElement = document.getElementById(`batch_select_${i}`);
-if ((subject_type === "Practical" || subject_type === "Practicum" || subject_type === "PD/PT") && batchElement) {
+         if (subject_type == "Theory" || subject_type == "PD/PT")
+         {
+            student_count = total_students;
+         }
+else if ((subject_type === "Practical" || subject_type === "Practicum") && batchElement) {
     batch_no = batchElement.value;
     if (batch_no && batch_no !== "none") {
         // Check student count inputs based on batch type
@@ -285,7 +293,6 @@ if ((subject_type === "Practical" || subject_type === "Practicum" || subject_typ
         subject_type = `${subject_type} - ${batch_no}`;
     }
 }
-
         subjectNames.push(subject_name);
         subjectTypes.push(subject_type);
         subjectHours.push(subject_hours);
@@ -297,6 +304,7 @@ if ((subject_type === "Practical" || subject_type === "Practicum" || subject_typ
         department: department,
         semester: semester,
         year: year,
+        total_students: total_students,
         no_of_subjects: no_of_subjects,
         subject_names: subjectNames,
         subject_types: subjectTypes,
@@ -321,9 +329,6 @@ if ((subject_type === "Practical" || subject_type === "Practicum" || subject_typ
     })
     .catch(error => console.error("Error:", error));
 }
-
     </script>
-
-
 </body>
 </html>
