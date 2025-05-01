@@ -108,15 +108,8 @@ function SaveData() {
         return;
     }
 
-    const time_slot = (hours_per_day === 8) ? [
-        "9:00am-9:50am", "9:50am-10:40am", "10:40am-10:50am", "10:50am-11:40am", "11:40am-12:30pm",
-        "12:30pm-1:10pm", "1:15pm-2:05pm", "2:05pm-2:55pm", "2:55pm-3:05pm", "3:05pm-3:55pm", "3:55pm-4:45pm"
-    ] : [
-        "9:00am-10:00am", "10:00am-11:00am", "11:00am-11:10am", "11:10am-12:10pm", "12:10pm-1:10pm",
-        "1:10pm-1:50pm", "1:55pm-2:50pm", "2:50pm-3:45pm", "3:45pm-4:40pm"
-    ];
 
-    const lab_timetable = { department, hours_per_day, time_slot };
+    const lab_timetable = { department, hours_per_day};
 
     console.log("Sending staff timetable data:", lab_timetable);
 
@@ -145,29 +138,89 @@ function SaveData() {
 }
 
 function displayTimetable(timetable) {
-    const container = document.getElementById("timetable-container");
-    container.innerHTML = "";
+    try {
+        const container = document.getElementById("timetable-container");
+        container.innerHTML = "";
 
-    if (!timetable || Object.keys(timetable).length === 0) {
-        container.innerHTML = "<p>No timetable available.</p>";
-        return;
+        // Handle error cases first
+        if (!timetable || typeof timetable !== 'object') {
+            container.innerHTML = "<p class='error'>Invalid timetable data received</p>";
+            return;
+        }
+
+        if (timetable.error) {
+            container.innerHTML = `<p class='error'>${timetable.error}</p>`;
+            return;
+        }
+
+        if (Object.keys(timetable).length === 0) {
+            container.innerHTML = "<p class='info'>No timetable available.</p>";
+            return;
+        }
+
+        // Get configuration
+        const hoursPerDay = parseInt(document.getElementById("HoursPerDay").value) || 8;
+        const daysOfWeek = ["MON", "TUE", "WED", "THU", "FRI"];
+
+        // Generate HTML for each lab
+        for (const lab_name in timetable) {
+            if (!timetable.hasOwnProperty(lab_name)) continue;
+
+            const labData = timetable[lab_name];
+            let tableHtml = `
+                <div class="lab-timetable">
+                <h2>${escapeHtml(lab_name)}</h2>
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Day</th>
+                            ${[...Array(hoursPerDay)].map((_, i) => `<th>Period ${i + 1}</th>`).join('')}
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            // Generate rows for each day
+            daysOfWeek.forEach(day => {
+                const periods = labData[day] || {};
+                const slots = Array(hoursPerDay).fill("-"); // Initialize empty slots
+
+                // Fill occupied periods
+                Object.entries(periods).forEach(([periodStr, data]) => {
+                    const period = parseInt(periodStr);
+                    if (!isNaN(period) && period >= 1 && period <= hoursPerDay) {
+                        slots[period - 1] = `${escapeHtml(data.subject)} (${escapeHtml(data.staff)})`;
+                    }
+                });
+
+                tableHtml += `
+                    <tr>
+                        <td>${day}</td>
+                        ${slots.map(slot => `<td>${slot}</td>`).join('')}
+                    </tr>
+                `;
+            });
+
+            tableHtml += `</tbody></table></div><br>`;
+            container.innerHTML += tableHtml;
+        }
+
+    } catch (error) {
+        console.error("Error displaying timetable:", error);
+        const container = document.getElementById("timetable-container");
+        container.innerHTML = `<p class='error'>Error displaying timetable: ${error.message}</p>`;
     }
+}
 
-    const hoursPerDay = parseInt(document.getElementById("HoursPerDay").value) || 8;
-    const daysOfWeek = ["MON", "TUE", "WED", "THU", "FRI"];
-
-    for (const staff_name in timetable) {
-        let tableHtml = `<h2>${lab_name}</h2><table border="1"><tr><th>Day</th>` +
-            [...Array(hoursPerDay)].map((_, i) => `<th>Period ${i + 1}</th>`).join('') + `</tr>`;
-
-        daysOfWeek.forEach(day => {
-            const subjects = (timetable[staff_name][day] || []).map(period => period.subject || "-");
-            tableHtml += `<tr><td>${day}</td>` + subjects.map(subject => `<td>${subject}</td>`).join('') + `</tr>`;
-        });
-
-        tableHtml += "</table><br>";
-        container.innerHTML += tableHtml;
-    }
+// Helper function to prevent XSS
+function escapeHtml(unsafe) {
+    if (typeof unsafe !== 'string') return unsafe;
+    return unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
 }
     </script>
 </body>
