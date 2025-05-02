@@ -43,12 +43,6 @@
          &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;
         <select id="department">
             <option value="none" selected disabled>None</option>
-            <option value="Basic_Engg_CE&amp;IT">Basic CE and IT</option>
-            <option value="Basic_Engg_ECE">Basic ECE</option>
-            <option value="Basic_Engg_EEE">Basic EEE</option>
-            <option value="Basic_Engg_CIVIL">Basic CIVIL</option>
-            <option value="Basic_Engg_MECH">Basic MECH</option>
-            <option value="Basic_Engg_AUTO">Basic AUTO</option>
             <option value="CE">Computer Engineering (CE)</option>
             <option value="IT">Information Technology(IT)</option>
             <option value="ECE">Electronics & Communication Engineering (ECE)</option>
@@ -127,6 +121,7 @@
                 <option value="4">4</option>
                 <option value="5">5</option>
                 <option value="6">6</option>
+                <option value="7">7</option>
             </select><br>
             <div id="batch_no_${i}"></div><br>
         `;
@@ -290,7 +285,6 @@ else if ((subject_type === "Practical" || subject_type === "Practicum") && batch
             }
         }
 
-        subject_type = `${subject_type} - ${batch_no}`;
     }
 }
         subjectNames.push(subject_name);
@@ -298,6 +292,7 @@ else if ((subject_type === "Practical" || subject_type === "Practicum") && batch
         subjectHours.push(subject_hours);
         studentsPerBatch.push(student_count);
     }
+
 
     const staffData = {
         staff_name: staff_name,
@@ -329,6 +324,9 @@ else if ((subject_type === "Practical" || subject_type === "Practicum") && batch
     })
     .catch(error => console.error("Error:", error));
 }
+
     </script>
+
+
 </body>
 </html>
