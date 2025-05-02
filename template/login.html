@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="stylesheet" href="static\style.css">
+    <title>Login Page</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="static\style.css">
 </head>
 <body>
 <div class="login_signup_img">
@@ -23,8 +24,10 @@
                 {% endfor %}
             {% endif %}
         {% endwith %}
+
         <br>
         <button type="submit">Login</button>
+
    <center> <a href="{{ url_for('update_password') }}">forgot password </a></center>
   </form>
 </div>
