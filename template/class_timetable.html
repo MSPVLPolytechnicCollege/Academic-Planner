@@ -68,12 +68,6 @@
         &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;
         <select id="department">
             <option value="none" selected disabled>None</option>
-            <option value="Basic_Engg_CE_IT">Basic CE and IT</option>
-            <option value="Basic_Engg_ECE">Basic ECE</option>
-            <option value="Basic_Engg_EEE">Basic EEE</option>
-            <option value="Basic_Engg_CIVIL">Basic CIVIL</option>
-            <option value="Basic_Engg_MECH">Basic MECH</option>
-            <option value="Basic_Engg_AUTO">Basic AUTO</option>
             <option value="CE">Computer Engineering (CE)</option>
             <option value="IT">Information Technology (IT)</option>
             <option value="ECE">Electronics & Communication Engineering (ECE)</option>
@@ -88,7 +82,7 @@
             <option value="7">7</option>
             <option value="8">8</option>
         </select><br>
-        <button onclick="SaveData()" id="lab_timetable">GENERATE LAB TIMETABLE</button>
+        <button onclick="SaveData()" id="class_timetable">GENERATE CLASS TIMETABLE</button>
     </div>
     <br>
     <div id="timetable-container"><center><h1>Lab Timetable</h1></center></div>
@@ -108,34 +102,26 @@ function SaveData() {
         return;
     }
 
-    const time_slot = (hours_per_day === 8) ? [
-        "9:00am-9:50am", "9:50am-10:40am", "10:40am-10:50am", "10:50am-11:40am", "11:40am-12:30pm",
-        "12:30pm-1:10pm", "1:15pm-2:05pm", "2:05pm-2:55pm", "2:55pm-3:05pm", "3:05pm-3:55pm", "3:55pm-4:45pm"
-    ] : [
-        "9:00am-10:00am", "10:00am-11:00am", "11:00am-11:10am", "11:10am-12:10pm", "12:10pm-1:10pm",
-        "1:10pm-1:50pm", "1:55pm-2:50pm", "2:50pm-3:45pm", "3:45pm-4:40pm"
-    ];
+    const class_timetable = { department, hours_per_day };
 
-    const lab_timetable = { department, hours_per_day, time_slot };
+    console.log("Sending staff timetable data:", class_timetable);
 
-    console.log("Sending staff timetable data:", lab_timetable);
-
-    fetch("http://127.0.0.1:5000/timetable_lab", {
+    fetch("http://127.0.0.1:5000/timetable_class", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(lab_timetable)
+        body: JSON.stringify(class_timetable)
     })
     .then(response => response.json())
     .then(data => {
         console.log("Received API response:", data);
         if (data.error) {
             alert("Error: " + data.error);
-        } else if (!data.timetable || Object.keys(data.timetable).length === 0) {
+        } else if (!data.timetables || Object.keys(data.timetables).length === 0) {
             alert("No timetable generated.");
         } else {
-            alert(data.message);
-            sessionStorage.setItem("timetable_data", JSON.stringify(data.timetable));
-            displayTimetable(data.timetable);
+            alert("Timetable generated successfully!");
+            sessionStorage.setItem("timetable_data", JSON.stringify(data.timetables));
+            displayTimetables(data.timetables); // Fixed function name
         }
     })
     .catch(error => {
@@ -143,31 +129,112 @@ function SaveData() {
         alert("Failed to fetch timetable.");
     });
 }
-
-function displayTimetable(timetable) {
+function displayTimetables(timetables) {
     const container = document.getElementById("timetable-container");
-    container.innerHTML = "";
+    container.innerHTML = "<center><h1>Class Timetable</h1></center>";
 
-    if (!timetable || Object.keys(timetable).length === 0) {
-        container.innerHTML = "<p>No timetable available.</p>";
+    if (!timetables || Object.keys(timetables).length === 0) {
+        container.innerHTML += "<p class='error'>No timetable data available</p>";
         return;
     }
 
-    const hoursPerDay = parseInt(document.getElementById("HoursPerDay").value) || 8;
-    const daysOfWeek = ["MON", "TUE", "WED", "THU", "FRI"];
+    for (const [classId, timetable] of Object.entries(timetables)) {
+        const sectionDiv = document.createElement("div");
+        sectionDiv.className = "timetable-section";
 
-    for (const staff_name in timetable) {
-        let tableHtml = `<h2>${lab_name}</h2><table border="1"><tr><th>Day</th>` +
-            [...Array(hoursPerDay)].map((_, i) => `<th>Period ${i + 1}</th>`).join('') + `</tr>`;
+        // Determine number of periods from data
+        let maxPeriods = 7; // default minimum
+        for (const daySchedule of Object.values(timetable.schedule)) {
+            if (daySchedule && daySchedule.length > maxPeriods) {
+                maxPeriods = daySchedule.length;
+            }
+        }
+        const noOfHoursPerDay = Math.min(Math.max(maxPeriods, 7), 8); // Clamp between 7-8
 
-        daysOfWeek.forEach(day => {
-            const subjects = (timetable[staff_name][day] || []).map(period => period.subject || "-");
-            tableHtml += `<tr><td>${day}</td>` + subjects.map(subject => `<td>${subject}</td>`).join('') + `</tr>`;
+        // Display class info
+        const title = document.createElement("h2");
+        title.textContent = `${timetable.year} - Semester ${timetable.semester} (${noOfHoursPerDay} periods/day)`;
+        sectionDiv.appendChild(title);
+
+        // Staff and Subjects
+        const metaDiv = document.createElement("div");
+        metaDiv.className = "timetable-meta";
+        metaDiv.innerHTML = `
+            <center><p><strong>Staff:</strong> ${timetable.staff.join(', ')}</p></center>
+            <center><p><strong>Subjects:</strong> ${timetable.subjects.join(', ')}</p></center>
+        `;
+        sectionDiv.appendChild(metaDiv);
+
+        // Create table
+        const table = document.createElement("table");
+        table.className = "timetable-table";
+
+        // Table header
+        const headerRow = document.createElement("tr");
+        headerRow.innerHTML = "<th>Day/Period</th>";
+        for (let i = 1; i <= noOfHoursPerDay; i++) {
+            headerRow.innerHTML += `<th>Period ${i}</th>`;
+        }
+        table.appendChild(headerRow);
+
+        // Process each day
+        const days = ["MON", "TUE", "WED", "THU", "FRI"];
+        days.forEach(day => {
+            const row = document.createElement("tr");
+            row.innerHTML = `<td class="day-cell">${day}</td>`;
+
+            // Get schedule for the day (pad with FREE if needed)
+            const daySchedule = timetable.schedule[day] || [];
+            const paddedSchedule = [...daySchedule];
+            while (paddedSchedule.length < noOfHoursPerDay) {
+                paddedSchedule.push(null); // Add FREE periods
+            }
+
+            for (let period = 0; period < noOfHoursPerDay; period++) {
+                const cell = document.createElement("td");
+                const slot = paddedSchedule[period];
+
+                if (!slot) {
+                    cell.textContent = "FREE";
+                    cell.className = "free-slot";
+                } else if (typeof slot === 'string') {
+                    const [subjectPart, staff] = slot.split('\n');
+                    const subjectMatch = subjectPart.match(/^(.+?)\s*\((.*?)\)$/);
+
+                    if (subjectMatch) {
+                        const [_, subject, type] = subjectMatch;
+                        cell.innerHTML = `${subject} <small>(${type})</small>${staff ? '<br><small>' + staff + '</small>' : ''}`;
+                        cell.className = getSlotClass(type);
+                    } else {
+                        cell.textContent = subjectPart;
+                        cell.className = "theory-slot";
+                    }
+                } else if (typeof slot === 'object') {
+                    const subject = slot.subject || "FREE";
+                    const type = slot.type || "Theory";
+                    const staff = slot.staff || "";
+
+                    cell.innerHTML = subject === "FREE" ? "FREE"
+                        : `${subject} <small>(${type})</small>${staff ? '<br><small>' + staff + '</small>' : ''}`;
+                    cell.className = subject === "FREE" ? "free-slot" : getSlotClass(type);
+                }
+
+                row.appendChild(cell);
+            }
+            table.appendChild(row);
         });
 
-        tableHtml += "</table><br>";
-        container.innerHTML += tableHtml;
+        sectionDiv.appendChild(table);
+        container.appendChild(sectionDiv);
     }
+}
+
+function getSlotClass(type) {
+    if (!type) return "theory-slot";
+    type = type.toLowerCase();
+    if (type.includes("lab")) return "lab-slot";
+    if (type.includes("pd") || type.includes("pt")) return "pdpt-slot";
+    return "theory-slot";
 }
     </script>
 </body>
