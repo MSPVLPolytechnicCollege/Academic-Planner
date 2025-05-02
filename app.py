@@ -304,11 +304,6 @@ def save_staff():
         conn = sqlite3.connect("db_AcademicPlannerAdvisor.db")
         cursor = conn.cursor()
 
-        basic_engg_departments = {"Basic_Engg_CE_IT", "Basic_Engg_ECE", "Basic_Engg_EEE", "Basic_Engg_CIVIL",
-                                  "Basic_Engg_MECH", "Basic_Engg_AUTO"}
-        if department in basic_engg_departments:
-            department = "Basic"
-
         table_name = f"staff_{department}"
 
         # Create table if it doesn't exist
@@ -455,13 +450,6 @@ def timetable_staff():
         conn = sqlite3.connect("db_AcademicPlannerAdvisor.db")
         cursor = conn.cursor()
 
-        basic_engg_departments = {
-            "Basic_Engg_CE_IT", "Basic_Engg_ECE", "Basic_Engg_EEE",
-            "Basic_Engg_CIVIL", "Basic_Engg_MECH", "Basic_Engg_AUTO"
-        }
-
-        if department in basic_engg_departments:
-            department = "Basic"
 
         table_name = f"staff_{department}"
 
@@ -473,22 +461,22 @@ def timetable_staff():
         staff_data = cursor.fetchall()
         conn.close()
 
+
         if not staff_data:
             return jsonify({"error": "No data found for the selected department"}), 404
 
         days = ["MON", "TUE", "WED", "THU", "FRI"]
         periods = hours_per_day
 
+
         # Extract the department, semester, and year from the first staff member (assuming all staff in a request are from the same department, semester, and year)
         target_department = staff_data[0][1]
         target_semester = staff_data[0][2]
         target_year = staff_data[0][3]
 
+
         timetable = generate_staff_timetable_with_continuous_labs(staff_data, days, periods, hours_per_day, target_department,
                                                   target_semester, target_year)
-        save_timetable_to_db(department, timetable)
-        fetch_staff_timetable_from_db(department)
-
 
 
         return jsonify({"message": "Timetable generated Successfully !", "timetable": timetable})
@@ -566,6 +554,9 @@ def generate_staff_timetable_with_continuous_labs(staff_data, days, periods, hou
             days, periods, current_sem, current_year, current_dept
         )
 
+        save_timetable_to_db(department, timetable, current_sem, current_year)
+        fetch_staff_timetable_from_db(department, current_sem, current_year)
+
     print("\n=== Timetable Generation Complete ===")
     return timetable
 
@@ -588,7 +579,7 @@ def get_practical_splits(hours_per_week, hours_per_day):
             return [[hours_per_week]]
     elif hours_per_day == 7:
         if hours_per_week == 6:
-            return [[3, 3], [4, 2], [2, 2, 2]]
+            return  [[3,2,1],[2,2,2]]
         elif hours_per_week == 4:
             return [[2, 2]]
         else:
@@ -704,8 +695,8 @@ def allocate_subjects(timetable_staff, global_schedule, subjects, days, periods,
         if allocated < hours:
             print(f" Warning: Could not fully allocate {label}. Allocated {allocated}/{hours}")
 
-def save_timetable_to_db(department, timetable):
-    """Store the generated timetable into SQLite database."""
+def save_timetable_to_db(department, timetable, semester, year):
+    """Store the generated timetable into SQLite database with semester and year."""
     conn = sqlite3.connect("db_AcademicPlannerAdvisor.db")
     cursor = conn.cursor()
 
@@ -717,30 +708,45 @@ def save_timetable_to_db(department, timetable):
             staff_name TEXT,
             day TEXT,
             period INTEGER,
-            subject TEXT
+            subject TEXT,
+            semester TEXT,
+            year TEXT,
+            UNIQUE(staff_name, day, period, semester, year)
         )
     """)
 
-    cursor.execute(f"DELETE FROM {table_name}")
+    # Delete existing entries for this semester/year combination
+    cursor.execute(f"""
+        DELETE FROM {table_name} 
+        WHERE semester = ? AND year = ?
+    """, (semester, year))
 
     for staff_name, schedule in timetable.items():
         for day, periods in schedule.items():
             for period_index, subject in enumerate(periods):
-                cursor.execute(f"""
-                    INSERT INTO {table_name} (staff_name, day, period, subject) 
-                    VALUES (?, ?, ?, ?)
-                """, (staff_name, day, period_index + 1, subject))
+                if subject != "-":  # Only store actual allocations
+                    cursor.execute(f"""
+                        INSERT INTO {table_name} 
+                        (staff_name, day, period, subject, semester, year) 
+                        VALUES (?, ?, ?, ?, ?, ?)
+                    """, (staff_name, day, period_index + 1, subject, semester, year))
 
     conn.commit()
     conn.close()
 
-def fetch_staff_timetable_from_db(department):
-    """Fetch the timetable from the database."""
+def fetch_staff_timetable_from_db(department, semester, year):
+    """Fetch the timetable from the database for specific semester and year."""
     conn = sqlite3.connect("db_AcademicPlannerAdvisor.db")
-    query = f"SELECT staff_name, day, period, subject FROM staff_timetable_{department} ORDER BY staff_name, day, period"
-    df = pd.read_sql_query(query, conn)
+    query = f"""
+        SELECT staff_name, day, period, subject 
+        FROM staff_timetable_{department} 
+        WHERE semester = ? AND year = ?
+        ORDER BY staff_name, day, period
+    """
+    df = pd.read_sql_query(query, conn, params=(semester, year))
     conn.close()
     return df
+
 
 def format_staff_timetable(df):
     """Format the timetable into a structure for display."""
@@ -756,22 +762,24 @@ def format_staff_timetable(df):
 
         timetable[staff][day][period - 1] = subject
     return timetable
-
-@app.route('/timetable/<department>')
-def display_timetable(department):
+@app.route('/timetable/<department>/<semester>/<year>')
+def display_timetable(department, semester, year):
     try:
-        df = fetch_staff_timetable_from_db(department)
+        df = fetch_staff_timetable_from_db(department, semester, year)
 
         if df.empty:
-            return "No timetable found for this department.", 404  # Handle empty timetable case
+            return "No timetable found for this department/semester/year combination.", 404
 
         timetable = format_staff_timetable(df)
-        print("Formatted Timetable:", timetable)
-        return render_template('staff_timetable.html', timetable=timetable)
+        return render_template(
+            'staff_timetable.html',
+            timetable=timetable,
+            semester=semester,
+            year=year
+        )
 
     except Exception as e:
         return f"Error loading timetable: {str(e)}", 500
-
 
 @app.route("/timetable_lab", methods=["POST"])
 def timetable_lab():
@@ -789,27 +797,27 @@ def timetable_lab():
         conn = sqlite3.connect("db_AcademicPlannerAdvisor.db")
         cursor = conn.cursor()
 
-        # First check staff timetable hours configuration
+        # Get maximum period from staff timetable
         cursor.execute(f"""
-                SELECT DISTINCT period 
-                FROM staff_timetable_{department}
-                ORDER BY period DESC
-                LIMIT 1
-            """)
-        max_staff_period = cursor.fetchone()
+                    SELECT MAX(period) 
+                    FROM staff_timetable_{department}
+                """)
+        max_staff_period = cursor.fetchone()[0] or 0  # Default to 0 if no data
 
-        if max_staff_period:
-            max_staff_period = max_staff_period[0]
-            if lab_hours_per_day < max_staff_period:
-                return jsonify({
-                    "error": f"Incorrect hours per day input. Staff timetable has periods up to {max_staff_period} but lab timetable requested for {lab_hours_per_day} hours."
-                }), 400
 
-        # Rest of your existing code for lab timetable generation...
-        basic_engg_departments = {
-            "Basic_Engg_CE_IT", "Basic_Engg_ECE", "Basic_Engg_EEE",
-            "Basic_Engg_CIVIL", "Basic_Engg_MECH", "Basic_Engg_AUTO"
-        }
+        # STRICT VALIDATION - Prevent generating more periods than exist in staff timetable
+        if lab_hours_per_day > max_staff_period:
+            return jsonify({
+                "error": f"Cannot generate {lab_hours_per_day} period lab timetable. Staff timetable only has {max_staff_period} periods configured.",
+                "max_allowed_periods": max_staff_period
+            }), 400
+
+        if lab_hours_per_day < max_staff_period :
+            return jsonify({
+                "error": f"Cannot generate {lab_hours_per_day} period lab timetable. Staff timetable  has {max_staff_period} periods configured.",
+                "max_allowed_periods": max_staff_period
+            }), 400
+
 
         table_name = f"LabDetails_{department}"
         cursor.execute(f"SELECT lab_name, subject_count, subject_name FROM {table_name}")
@@ -826,7 +834,7 @@ def timetable_lab():
             subject_lab_map[cleaned_subject].append(lab_name)
 
         cursor.execute(f"""
-            SELECT staff_name, day, period, subject
+            SELECT staff_name, day, period, subject,year
             FROM staff_timetable_{department}
             WHERE subject LIKE '%Lab%'
         """)
@@ -837,8 +845,8 @@ def timetable_lab():
         lab_timetable = defaultdict(lambda: defaultdict(dict))
         used_slots = defaultdict(lambda: defaultdict(set))
 
-        for staff_name, day, period, subject in lab_sessions:
-            print(f"[INFO] Processing lab session: {staff_name} | {subject} | {day} | {period}")
+        for staff_name, day, period, subject, year in lab_sessions:
+            print(f"[INFO] Processing lab session: {staff_name} | {subject} | {day} | {period}  | {year}")
             assigned = False
             subject_base = re.sub(r"\s*\(.*?\)", "", subject).strip().lower()
             mapped_labs = subject_lab_map.get(subject_base, [])
@@ -851,15 +859,18 @@ def timetable_lab():
                 if period not in used_slots[lab][day]:
                     lab_timetable[lab][day][period] = {
                         "subject": subject,
-                        "staff": staff_name
+                        "staff": staff_name,
+                        "department" : f"{department}",
+                        "yr" : year
+
                     }
                     used_slots[lab][day].add(period)
                     assigned = True
-                    print(f"[INFO] Assigned {subject} to {lab} on {day} slot {period} with {staff_name}")
+                    print(f"[INFO] Assigned {subject} to {lab} on {day} slot {period} with {staff_name} {department}_{year}")
                     break
 
             if not assigned:
-                print(f"[WARNING] Could not assign: {subject} on {day} slot {period} by {staff_name}")
+                print(f"[WARNING] Could not assign: {subject} on {day} slot {period} by {staff_name} {department}_{year}")
 
         save_lab_timetable_to_db(department, lab_timetable)
 
@@ -868,7 +879,9 @@ def timetable_lab():
                 day: {
                     period: {
                         "staff": info['staff'],
-                        "subject": info['subject']
+                        "subject": info['subject'],
+                        "department" : f"{department}",
+                        "year" :info['yr']
                     }
                     for period, info in day_slots.items()
                 }
@@ -900,7 +913,8 @@ def save_lab_timetable_to_db(department, timetable):
             day TEXT,
             period INTEGER,
             subject TEXT,
-            staff TEXT
+            staff TEXT,
+            class_id TEXT
         )
     """)
 
@@ -911,10 +925,13 @@ def save_lab_timetable_to_db(department, timetable):
             for period, info in periods.items():
                 subject = info["subject"]
                 staff = info["staff"]
+                department= f"{department}"
+                year =  info["yr"]
+                class_id = f"{department}_{year}"
                 cursor.execute(f"""
-                    INSERT INTO {table_name} (lab_name, day, period, subject, staff) 
-                    VALUES (?, ?, ?, ?, ?)
-                """, (lab_name, day, int(period), subject, staff))
+                    INSERT INTO {table_name} (lab_name, day, period, subject, staff, class_id) 
+                    VALUES (?, ?, ?, ?, ?,?)
+                """, (lab_name, day, int(period), subject, staff, class_id))
 
     conn.commit()
     conn.close()
@@ -922,7 +939,7 @@ def save_lab_timetable_to_db(department, timetable):
 def fetch_lab_timetable_from_db(department):
     conn = sqlite3.connect("db_AcademicPlannerAdvisor.db")
     query = f"""
-        SELECT lab_name, day, period, subject, staff 
+        SELECT lab_name, day, period, subject, staff , class_id
         FROM lab_timetable_{department} 
         ORDER BY lab_name, day, period
     """
@@ -959,6 +976,223 @@ def display_lab_timetable(department):
 
     except Exception as e:
         return f"Error loading lab timetable: {str(e)}", 500
+
+
+@app.route("/timetable_class", methods=["POST"])
+def timetable_class():
+    try:
+        print("\n=== Starting Class Timetable Generation ===")
+        data = request.get_json()
+        department = data.get("department").upper()
+        hours_per_day = int(data.get("hours_per_day", 8))
+
+        with sqlite3.connect("db_AcademicPlannerAdvisor.db") as conn:
+            conn.execute("PRAGMA foreign_keys = ON")
+            cursor = conn.cursor()
+
+            # Get maximum period from staff timetable
+            cursor.execute(f"""
+                               SELECT MAX(period) 
+                               FROM staff_timetable_{department}
+                           """)
+            max_staff_period = cursor.fetchone()[0] or 0  # Default to 0 if no data
+
+            # STRICT VALIDATION - Prevent generating more periods than exist in staff timetable
+            if hours_per_day > max_staff_period:
+                return jsonify({
+                    "error": f"Cannot generate {hours_per_day} period lab timetable. Staff timetable only has {max_staff_period} periods configured.",
+                    "max_allowed_periods": max_staff_period
+                }), 400
+
+            if hours_per_day < max_staff_period:
+                return jsonify({
+                    "error": f"Cannot generate {hours_per_day} period lab timetable. Staff timetable  has {max_staff_period} periods configured.",
+                    "max_allowed_periods": max_staff_period
+                }), 400
+
+            # 1. Get all staff timetable data grouped by year and semester
+            cursor.execute(f"""
+                SELECT 
+                    s.year,
+                    s.semester,
+                    st.staff_name,
+                    st.day,
+                    st.period,
+                    st.subject,
+                    s.subject_types
+                FROM staff_timetable_{department} st
+                JOIN staff_{department} s ON st.staff_name = s.staff_name
+                ORDER BY s.year, s.semester, st.day, st.period
+            """)
+            staff_timetable_data = cursor.fetchall()
+
+            if not staff_timetable_data:
+                return jsonify({"error": "No staff timetable data found"}), 404
+
+            # 2. Organize data by class (year + semester)
+            class_timetables = {}
+            days = ["MON", "TUE", "WED", "THU", "FRI"]
+
+            for year, semester, staff, day, period, subject, sub_type in staff_timetable_data:
+                # Create unique class identifier
+                class_id = f"{year}_{semester}"
+
+                if class_id not in class_timetables:
+                    # Initialize timetable structure for this class
+                    class_timetables[class_id] = {
+                        "year": year,
+                        "semester": semester,
+                        "schedule": {
+                            day: [{"subject": "FREE", "staff": "", "type": ""}
+                                  for _ in range(hours_per_day)]
+                            for day in days
+                        },
+                        "subjects": set(),
+                        "staff": set()
+                    }
+
+                # Add to subjects and staff sets
+                class_timetables[class_id]["subjects"].add(subject)
+                class_timetables[class_id]["staff"].add(staff)
+
+                # Update the schedule slot
+                period_idx = period - 1
+                if 0 <= period_idx < hours_per_day:
+                    class_timetables[class_id]["schedule"][day][period_idx] = {
+                        "subject": subject,
+                        "staff": staff,
+                        "type": sub_type.split(",")[0] if sub_type else "THEORY"
+                    }
+
+            # 3. Save each class timetable to database
+            for class_id, timetable in class_timetables.items():
+                year, semester = class_id.split("_")
+                table_name = f"class_timetable_{department}_{year}_{semester}"
+
+                # Sanitize table name
+                table_name = re.sub(r"[^a-zA-Z0-9_]", "_", table_name)
+
+                try:
+                    # Drop existing table if exists
+                    cursor.execute(f"DROP TABLE IF EXISTS \"{table_name}\"")
+
+                    # Create new table
+                    cursor.execute(f"""
+                        CREATE TABLE \"{table_name}\" (
+                            day TEXT,
+                            period INTEGER,
+                            subject TEXT,
+                            staff TEXT,
+                            type TEXT,
+                            PRIMARY KEY (day, period)
+                        )
+                    """)
+
+                    # Insert data
+                    for day in days:
+                        for period in range(hours_per_day):
+                            slot = timetable["schedule"][day][period]
+                            cursor.execute(
+                                f"INSERT INTO \"{table_name}\" VALUES (?, ?, ?, ?, ?)",
+                                (day, period + 1, slot["subject"], slot["staff"], slot["type"])
+                            )
+
+                    conn.commit()
+                    print(f"Saved timetable for {year} {semester}")
+
+                except Exception as e:
+                    conn.rollback()
+                    print(f"Error saving timetable for {year} {semester}: {str(e)}")
+                    continue
+
+            # 4. Prepare response
+            response = {
+                "status": "success",
+                "department": department,
+                "timetables": {
+                    class_id: {
+                        "year": data["year"],
+                        "semester": data["semester"],
+                        "schedule": data["schedule"],
+                        "subjects": list(data["subjects"]),
+                        "staff": list(data["staff"])
+                    }
+                    for class_id, data in class_timetables.items()
+                }
+            }
+
+            return jsonify(response), 200
+
+    except Exception as e:
+        print(f"Error generating class timetables: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/get_class_timetable/<department>/<year>/<semester>", methods=["GET"])
+def get_class_timetable(department, year, semester):
+    try:
+        table_name = f"class_timetable_{department}_{year}_{semester}"
+        table_name = re.sub(r"[^a-zA-Z0-9_]", "_", table_name)
+
+        with sqlite3.connect("db_AcademicPlannerAdvisor.db") as conn:
+            cursor = conn.cursor()
+
+            # Get timetable structure
+            cursor.execute(f"""
+                SELECT day, period, subject, staff, type 
+                FROM "{table_name}"
+                ORDER BY 
+                    CASE day
+                        WHEN 'MON' THEN 1
+                        WHEN 'TUE' THEN 2
+                        WHEN 'WED' THEN 3
+                        WHEN 'THU' THEN 4
+                        WHEN 'FRI' THEN 5
+                        ELSE 6
+                    END,
+                    period
+            """)
+            timetable_data = cursor.fetchall()
+
+            if not timetable_data:
+                return jsonify({"error": "Timetable not found"}), 404
+
+            # Get unique subjects and staff
+            cursor.execute(f"""
+                SELECT DISTINCT subject FROM "{table_name}" WHERE subject != 'FREE'
+            """)
+            subjects = [row[0] for row in cursor.fetchall()]
+
+            cursor.execute(f"""
+                SELECT DISTINCT staff FROM "{table_name}" WHERE staff != ''
+            """)
+            staff = [row[0] for row in cursor.fetchall()]
+
+            # Format timetable
+            days = ["MON", "TUE", "WED", "THU", "FRI"]
+            hours_per_day = max(period for _, period, _, _, _ in timetable_data)
+            timetable = {day: [] for day in days}
+
+            for day, period, subject, staff, type in timetable_data:
+                timetable[day].append({
+                    "period": period,
+                    "subject": subject,
+                    "staff": staff,
+                    "type": type
+                })
+
+            return jsonify({
+                "department": department,
+                "year": year,
+                "semester": semester,
+                "subjects": subjects,
+                "staff": staff,
+                "timetable": timetable
+            })
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 
 if __name__ == '__main__':
     app.run(debug=True)
