@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Generate  Class Timetable Page</title>
+    <title>Genearete Class Timetable Page</title>
     <style>
         body {
             background: url('/static/bg_page.jpg') no-repeat center fixed;
@@ -183,11 +183,10 @@ function displayTimetables(timetables) {
             const row = document.createElement("tr");
             row.innerHTML = `<td class="day-cell">${day}</td>`;
 
-            // Get schedule for the day (pad with FREE if needed)
             const daySchedule = timetable.schedule[day] || [];
             const paddedSchedule = [...daySchedule];
             while (paddedSchedule.length < noOfHoursPerDay) {
-                paddedSchedule.push(null); // Add FREE periods
+                paddedSchedule.push(null);
             }
 
             for (let period = 0; period < noOfHoursPerDay; period++) {
@@ -202,8 +201,9 @@ function displayTimetables(timetables) {
                     const subjectMatch = subjectPart.match(/^(.+?)\s*\((.*?)\)$/);
 
                     if (subjectMatch) {
-                        const [_, subject, type] = subjectMatch;
-                        cell.innerHTML = `${subject} <small>(${type})</small>${staff ? '<br><small>' + staff + '</small>' : ''}`;
+                        const subject = subjectMatch[1];
+                        const type = subjectMatch[2];
+                        cell.innerHTML = `${subject}${staff ? '<br><small>' + staff + '</small>' : ''}`;
                         cell.className = getSlotClass(type);
                     } else {
                         cell.textContent = subjectPart;
@@ -215,12 +215,13 @@ function displayTimetables(timetables) {
                     const staff = slot.staff || "";
 
                     cell.innerHTML = subject === "FREE" ? "FREE"
-                        : `${subject} <small>(${type})</small>${staff ? '<br><small>' + staff + '</small>' : ''}`;
+                        : `${subject}${staff ? '<br><small>' + staff + '</small>' : ''}`;
                     cell.className = subject === "FREE" ? "free-slot" : getSlotClass(type);
                 }
 
                 row.appendChild(cell);
             }
+
             table.appendChild(row);
         });
 
@@ -236,6 +237,7 @@ function getSlotClass(type) {
     if (type.includes("pd") || type.includes("pt")) return "pdpt-slot";
     return "theory-slot";
 }
+
     </script>
 </body>
 </html>
